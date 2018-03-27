@@ -1,0 +1,1048 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="priceSalesOfTop">
+	
+	<sql id="sourceSalesTables">
+		<isEqual property="cityType" compareValue="state">
+			FDM_VERSION_INSURANCE_MIX_SP 
+		</isEqual>
+		<isEqual property="cityType" compareValue="dist">
+			fdm_version_insurance_mix_dist 
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			fdm_version_insurance_mix_prov 
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			FDM_VERSION_INSURANCE_MIX_city 
+		</isEqual>
+	</sql>
+	
+	<sql id="sourceSalesWhere">
+		<isEqual property="cityType" compareValue="dist">
+			and x.district_id in ($cityId$)
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			and x.province_id in ($cityId$)  
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			and x.city_id in ($cityId$) 
+		</isEqual>
+	</sql>
+	
+	<sql id="showSalesTables">
+		<isEqual property="cityType" compareValue="state">
+			fdm_state_insurance 
+		</isEqual>
+		<isEqual property="cityType" compareValue="dist">
+			fdm_dist_insurance 
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			fdm_prov_insurance 
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			fdm_city_insurance 
+		</isEqual>
+	</sql>
+	
+	<sql id="showSalesWhere">
+		<isEqual property="cityType" compareValue="dist">
+			and x.district_id in ($cityId$)
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			and x.province_id in ($cityId$)  
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			and x.city_id in ($cityId$) 
+		</isEqual>
+	</sql>
+	
+	<sql id="showSalesNames">
+		<isEqual property="cityType" compareValue="state">
+			x.bq_sales 
+		</isEqual>
+		<isNotEqual property="cityType" compareValue="state">
+			x.bq_reg_qty 
+		</isNotEqual>
+	</sql>
+	
+	<sql id="otherTables">
+		<isEqual property="objectType" compareValue="segment">
+			,dm_sub_grade_new g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="manf">
+			,dm_manf g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="brand">
+			,dm_brand g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="manfBrand">
+			,dm_manf_brand g,dm_sub_model sm
+		</isEqual>
+	</sql>
+	
+	<sql id="otherTablesWhere">
+		<isEqual property="objectType" compareValue="segment">
+			<isEqual property="isAllSegment" compareValue="f">
+				and (
+			           g.level3id in ($value$)
+			           or g.level2id in ($value$)
+			           or g.level1id in ($value$)
+			           or g.level0id in ($value$)
+			         )
+			</isEqual>
+			and g.levelflag = 3
+		    and g.sub_model_id = x.sub_model_id
+		    and g.sub_model_id = sm.sub_model_id
+		</isEqual>
+		<isEqual property="objectType" compareValue="manf">
+			and x.sub_model_id = sm.sub_model_id
+		    and sm.manf_id = g.manf_id
+		    and g.manf_id in ($value$)
+		</isEqual>
+		<isEqual property="objectType" compareValue="brand">
+			and x.sub_model_id = sm.sub_model_id
+		    and sm.brand_id = g.brand_id
+		    and g.brand_id in ($value$)
+		</isEqual>
+		<isEqual property="objectType" compareValue="manfBrand">
+			and x.sub_model_id = sm.sub_model_id
+		    and sm.manf_brand_id = g.manf_brand_id
+		    and g.manf_brand_id in ($value$)
+		</isEqual>
+	</sql>
+	
+	<sql id="otherThoroughOtherGroup">
+		<isEqual property="thoroughObjectType" compareValue="segment">
+			g.sub_grade_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="manf">
+			sm.manf_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="brand">
+			sm.brand_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="manfBrand">
+			sm.manf_brand_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="orig">
+			sm.orig_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="carType">
+			sm.car_type_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="pooAttr">
+			sm.poo_attribute_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="city">
+			
+		</isEqual>
+	</sql>
+	
+	<sql id="otherThoroughOtherLeft">
+		<isEqual property="thoroughObjectType" compareValue="segment">
+			left join (select distinct g.sub_grade_id,g.sub_grade_name from dm_sub_grade_new g) g on b.id = g.sub_grade_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="manf">
+			left join dm_manf m on b.id = m.manf_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="brand">
+			left join dm_brand m on b.id = m.brand_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="manfBrand">
+			left join dm_manf_brand m on b.id = m.manf_brand_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="orig">
+			left join dm_original m on b.id = m.original_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="carType">
+			left join dm_car_type m on b.id = m.car_type_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="pooAttr">
+			left join dm_poo_attribute m on b.id = m.poo_attribute_id
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="city">
+			
+		</isEqual>
+	</sql>
+	
+	<sql id="otherThoroughOtherName">
+		<isEqual property="thoroughObjectType" compareValue="segment">
+			g.sub_grade_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="manf">
+			m.manf_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="brand">
+			m.brand_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="manfBrand">
+			m.manf_brand_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="orig">
+			m.original_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="carType">
+			m.car_type_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="pooAttr">
+			m.poo_attribute_name 
+		</isEqual>
+		<isEqual property="thoroughObjectType" compareValue="city">
+			
+		</isEqual>
+	</sql>
+	
+	<!-- ..................not model start.............................. -->
+	
+	<resultMap id="echartOfOtherListEntity" class="com.ways.app.module.entity.EchartOfOtherListEntity" groupBy="rn">
+		<result property="dateKey" column="dateKey"/>
+		<result property="rn" column="rn"/>
+		<result property="list" resultMap="priceSalesOfTop.echartOfOtherMapEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.EchartOfOtherMapEntity" id="echartOfOtherMapEntity">
+		<result property="levelValue" column="levelValue"/>
+		<result property="levelName" column="levelName"/>
+		<result property="value" column="value"/>
+		<result property="sales" column="sales"/>
+	</resultMap>
+	<!-- echart图数据（非车型维度） -->
+	<select id="getTopEchartOfOtherData" parameterClass="java.util.HashMap" resultMap="priceSalesOfTop.echartOfOtherListEntity">
+		with 
+		price_temp as/*价格段样版表*/
+		(
+		  $priceLevelTable$
+		)
+		,base_date as/*时间表*/
+		(
+		  select '$startDate$' startDate,
+		         '$endDate$' endDate,
+		         '$startDateKey$' dateKey,
+		         months_between(to_date('$endDate$','yyyymm'),to_date('$startDate$','yyyymm'))+1 monthCount,/*end,start*/
+		         1 rn
+		  from dual
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select '$endStartDate$' startDate,
+			         '$endEndDate$' endDate,
+			         '$endDateKey$' dateKey,
+			         months_between(to_date('$endEndDate$','yyyymm'),to_date('$endStartDate$','yyyymm'))+1 monthCount,
+			         2 rn
+			  from dual
+		  </isEqual>
+		)
+		,price_date as/*时间和价格段合并*/
+		(
+		  select p.*,d.* from price_temp p,base_date d
+		)
+		,datas as/*原始数据*/
+		(
+		  select d.dateKey,d.monthCount,d.rn,sg.sub_grade_id,
+		         $priceLevelCase$ levelvalue,
+		         <isEqual property="objectType" compareValue="segment">
+		         	g.sub_grade_id id,	<!-- 为细分市场做特殊处理 -->
+		         </isEqual>
+		         sum(x.bq_sales) bq_sales
+		  from <include refid="sourceSalesTables"/> x,dm_sub_grade_new sg,base_date d<include refid="otherTables" />
+		  where ym between d.startDate and d.endDate
+		    and sg.levelflag = 3
+     		and sg.sub_model_id = x.sub_model_id
+		    <isNotEmpty property="bodyType">
+		    	and sm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and sm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		    	and sm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <include refid="otherTablesWhere" />
+		    <include refid="sourceSalesWhere"/>
+		  group by d.dateKey,d.monthCount,d.rn,sg.sub_grade_id,$priceLevelCase$
+		  		   <isEqual property="objectType" compareValue="segment">
+		         	 ,g.sub_grade_id   <!-- 为细分市场做特殊处理 -->
+		           </isEqual>
+		)
+		,sum_datas as/*获取放大的总销量*/
+		(
+		  select a.dateKey,a.rn,a.sub_grade_id,a.bq_sales show_sales,b.bq_sales source_sales
+		  from 
+		  (
+		    select d.dateKey,d.rn,sg.sub_grade_id,sum(<include refid="showSalesNames"/>) bq_sales
+		    from <include refid="showSalesTables"/> x,dm_sub_grade_new sg,base_date d<include refid="otherTables" />
+		    where x.year||lpad(x.month_id,2,0) between d.startDate and d.endDate
+		      and sg.levelflag = 3
+              and sg.sub_model_id = x.sub_model_id
+			  <isNotEmpty property="bodyType">
+			   	and sm.body_type_id in ($bodyType$)
+			  </isNotEmpty>
+			  <isNotEmpty property="portType">
+			   	and sm.poo_attribute_id in ($portType$)
+			  </isNotEmpty>
+			  <isNotEmpty property="originType">
+			  	and sm.orig_id in ($originType$)
+			  </isNotEmpty>
+		      <include refid="otherTablesWhere" />
+		      <include refid="showSalesWhere"/>
+		    group by d.dateKey,d.rn,sg.sub_grade_id
+		  ) a,
+		  (
+		    select dateKey,rn,sub_grade_id,sum(bq_sales) bq_sales from datas
+		    group by dateKey,rn,sub_grade_id
+		  ) b
+		  where a.dateKey = b.dateKey
+		    and a.rn = b.rn
+		    and a.sub_grade_id = b.sub_grade_id
+		)
+		<!-- <isEqual property="objectType" compareValue="segment"> 为细分市场做特殊处理 -->
+		,not_all_datas as/*放大*/
+		<!-- </isEqual> -->
+		<!-- <isNotEqual property="objectType" compareValue="segment"> 其他维度
+		,all_datas as/*放大*/
+		</isNotEqual> -->
+		(
+		  <!-- <isEqual property="objectType" compareValue="segment">为细分市场做特殊处理 -->
+         	 /*汇总成所选的or整体细分市场*/ 
+		  select datekey,monthcount,rn,levelvalue,(sum(sales)) sales
+		  from (/*计算3级细分市场在某价格段的销量*/
+          <!-- </isEqual> -->
+		  select bq.*,
+		         s.source_sales,s.show_sales,
+		         case when nvl(bq.bq_sales,0) = 0 or nvl(s.show_sales,0) = 0
+		           then 0
+		           else ((bq.bq_sales / s.source_sales) * 100)
+		         end pct,
+		         case when nvl(bq.bq_sales,0) = 0 or nvl(s.show_sales,0) = 0 or nvl(s.source_sales,0) = 0
+		           then 0
+		           else ((bq.bq_sales / s.source_sales) * s.show_sales)
+		         end sales
+		  from datas bq,sum_datas s
+		  where bq.dateKey = s.dateKey
+		    and bq.rn = s.rn
+		    and bq.sub_grade_id = s.sub_grade_id
+		  order by bq.rn,bq.levelvalue
+		  <!-- <isEqual property="objectType" compareValue="segment">为细分市场做特殊处理 -->
+		  	) group by datekey,monthcount,rn,levelvalue
+		  <!-- </isEqual> -->
+		)
+		<!-- <isEqual property="objectType" compareValue="segment">为细分市场做特殊处理 -->
+			,all_datas as
+			(
+			  select a.*,
+			         case when nvl(b.sales,0) = 0
+			           then 0
+			           else (a.sales / b.sales * 100)
+			         end pct
+			  from not_all_datas a
+			  left join (select rn,sum(sales) sales from not_all_datas group by rn) b
+			    on a.rn = b.rn
+			)
+		<!-- </isEqual> -->
+		select dateKey,rn,levelName,levelValue,
+			    <isEqual property="chartDataType" compareValue="sales">
+		  		 	<isEqual property="dataType" compareValue="avg">
+		  		 		to_char(round(sales / monthCount),'fm9,999,999,990') value
+		  		 	</isEqual>
+		  		 	<isEqual property="dataType" compareValue="sum">
+		  		 		to_char(round(sales),'fm9,999,999,990') value
+		  		 	</isEqual>
+		  		</isEqual>
+		  		<isEqual property="chartDataType" compareValue="mix">
+		  				to_char(pct,'fm9,999,999,990.0') value
+		  		</isEqual>
+  		 		<!-- 记录该价格段销量 -->
+  		 		,to_char(round(sales),'fm9,999,999,990') sales
+		from
+		(
+		  select t.levelName,t.levelvalue,t.rn,t.dateKey,
+		  		 nvl(a.sales,0) sales,
+		         nvl(a.pct,0) pct,
+		         t.monthCount
+		  from price_date t
+		  left join all_datas a on t.levelvalue = a.levelvalue and t.rn = a.rn
+		) order by rn,levelvalue
+	</select>
+	
+	<!-- ..................not model end.............................. -->
+	
+	<!-- ..................model start.............................. -->
+	<select id="getTopBarEchartOfModelData" parameterClass="java.util.HashMap" resultMap="priceSalesOfTop.echartOfOtherListEntity">
+		with 
+		price_temp as/*价格段样版表*/
+		(
+		  $priceLevelTable$
+		)
+		,base_date as/*时间表*/
+		(
+		  select '$startDate$' startDate,
+		         '$endDate$' endDate,
+		         '$startDateKey$' dateKey,
+		         months_between(to_date('$endDate$','yyyymm'),to_date('$startDate$','yyyymm'))+1 monthCount,/*end,start*/
+		         1 rn
+		  from dual
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select '$endStartDate$' startDate,
+			         '$endEndDate$' endDate,
+			         '$endDateKey$' dateKey,
+			         months_between(to_date('$endEndDate$','yyyymm'),to_date('$endStartDate$','yyyymm'))+1 monthCount,
+			         2 rn
+			  from dual
+		  </isEqual>
+		)
+		,price_date as/*时间和价格段合并*/
+		(
+		  select p.*,d.* from price_temp p,base_date d
+		)
+		,datas as/*原始数据*/
+		(
+		  select d.dateKey,d.monthCount,d.rn,
+		         $priceLevelCase$ levelvalue,
+		         sum(x.bq_sales) bq_sales
+		  from <include refid="sourceSalesTables"/> x,base_date d,dm_sub_model sm
+		  where ym between d.startDate and d.endDate
+		    and x.sub_model_id in ($value$)
+		    and sm.sub_model_id = x.sub_model_id
+		    <isNotEmpty property="bodyType">
+		    	and sm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and sm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		        and sm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <include refid="sourceSalesWhere"/>
+		  group by d.dateKey,d.monthCount,d.rn,$priceLevelCase$
+		)
+		,get_sum as
+		(
+		  select rn,round(nvl(sum(bq_sales),0)) all_sales
+		  from datas
+		  group by rn
+		)
+		select t.levelName,t.levelvalue,t.rn,t.dateKey,
+			   <isEqual property="chartDataType" compareValue="sales">
+		  		 	<isEqual property="dataType" compareValue="avg">
+		  		 		to_char(
+		  		 				round(nvl(a.bq_sales,0) / t.monthCount )
+		  		 			,'fm99,999,990') value
+		  		 	</isEqual>
+		  		 	<isEqual property="dataType" compareValue="sum">
+		  		 		to_char(round(nvl(a.bq_sales,0)),'fm99,999,990') value
+		  		 	</isEqual>
+		  		</isEqual>
+		  		<isEqual property="chartDataType" compareValue="mix">
+		  				case when round(nvl(a.bq_sales,0)) = 0 or s.all_sales = 0
+				          then '0.0'
+				          else to_char(round(round(nvl(a.bq_sales,0)) / s.all_sales * 100,1),'fm99,999,990.0')
+				        end value
+		  		</isEqual>
+	  			<!-- 记录该价格段销量 -->
+  		 		,to_char(round(nvl(a.bq_sales,0)),'fm99,999,990') sales
+		from price_date t
+		left join get_sum s on t.rn = s.rn
+		left join datas a on t.rn = a.rn and t.levelvalue = a.levelvalue
+		order by t.rn,t.levelValue
+	</select>
+	
+	<select id="getTopPriceLevelEchartOfModelData" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		with all_datas as
+		(
+		  select x.version_id,
+		         x.sub_model_id,
+		         sum(x.bq_sales) bq_sales,
+		         ratio_to_report(sum(x.bq_sales)) over(partition by x.sub_model_id) sum_mix,
+		         row_number() over(partition by x.sub_model_id order by sum(x.bq_sales) desc nulls last) sum_ranks,
+		         avg(x.bq_sales) avg_bq_sales,
+		         ratio_to_report(avg(x.bq_sales)) over(partition by x.sub_model_id) avg_mix,
+		         row_number() over(partition by x.sub_model_id order by avg(x.bq_sales) desc nulls last) avg_ranks
+		  from <include refid="sourceSalesTables"/> x,dm_sub_model dsm
+		  where 1 = 1
+		    and dsm.sub_model_id = x.sub_model_id
+		    <isNotEmpty property="bodyType">
+		    	and dsm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and dsm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		    	and dsm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <isEqual property="dateRange" compareProperty="startDateKey">
+		    	and x.ym between '$startDate$' and '$endDate$'
+		    </isEqual>
+			<isEqual property="dateRange" compareProperty="endDateKey">
+		    	and x.ym between '$endStartDate$' and '$endEndDate$'
+		    </isEqual>
+		    and x.sub_model_id in ($value$)
+		    <include refid="sourceSalesWhere"/>
+		  group by x.version_id, x.sub_model_id
+		)
+		,t_msrp as
+		(
+		  select ff.version_id,
+		         ff.msrp,
+		         ff.ym,
+		         row_number() over(partition by ff.sub_model_id, ff.version_id order by ff.ym desc, ff.msrp desc nulls last) ranks
+		  from FDM_VERSION_INSURANCE_MIX_SP ff
+		  where 1 = 1
+		    and ff.msrp <![CDATA[ > ]]> 0
+		    <isEqual property="dateRange" compareValue="0">
+		    	and ff.ym between '$startDate$' and '$endDate$'
+		    </isEqual>
+			<isEqual property="dateRange" compareValue="1">
+		    	and ff.ym between '$endStartDate$' and '$endEndDate$'
+		    </isEqual>
+		    and ff.sub_model_id in ($value$)
+		)
+		,t_tp as
+		(
+		  select ff.version_id,
+		         ff.tp,
+		         ff.ym,
+		         row_number() over(partition by ff.sub_model_id, ff.version_id order by ff.ym desc, ff.tp desc nulls last) ranks
+		  from FDM_VERSION_INSURANCE_MIX_SP ff
+		  where 1 = 1
+		    and ff.tp <![CDATA[ > ]]> 0
+		    <isEqual property="dateRange" compareValue="0">
+		    	and ff.ym between '$startDate$' and '$endDate$'
+		    </isEqual>
+			<isEqual property="dateRange" compareValue="1">
+		    	and ff.ym between '$endStartDate$' and '$endEndDate$'
+		    </isEqual>
+		    and ff.sub_model_id in ($value$)
+		)
+		,temp_datas as
+		(
+		  select distinct mix.sub_model_id,
+		                  c.msrp,
+		                  row_number() over(partition by mix.sub_model_id order by c.msrp desc nulls last) maxMsrpNum,
+		                  row_number() over(partition by mix.sub_model_id order by c.msrp asc nulls last) minMsrpNum,
+		                  d.tp,
+		                  row_number() over(partition by mix.sub_model_id order by d.tp desc nulls last) maxTpNum,
+		                  row_number() over(partition by mix.sub_model_id order by d.tp asc nulls last) minTpNum,
+		                  mix.sum_ranks,
+		                  mix.avg_ranks
+		  from all_datas mix
+		  left join (select * from t_msrp c where c.ranks = 1) c
+		    on c.version_id = mix.version_id
+		  left join (select * from t_tp d where d.ranks = 1) d
+		    on d.version_id = mix.version_id
+		)
+		select to_char(dsm.sub_model_id) id,
+		       case when dsm.poo_attribute_id = 1 
+		         then dsm.sub_model_name || '(进口)'
+		         else dsm.sub_model_name
+		       end name,
+		       decode(t.msrp, null, '-', to_char(t.msrp,'fm999,999,990')) maxMsrp,
+		       decode(b.msrp, null, '-', to_char(b.msrp,'fm999,999,990')) as minMsrp,
+		       decode(t.msrp - b.msrp, null, '-', to_char(t.msrp - b.msrp,'fm999,999,990')) msrpGap,
+		       decode(c.tp, null, '-', to_char(c.tp,'fm999,999,990')) maxTp,
+		       decode(d.tp, null, '-', to_char(d.tp,'fm999,999,990')) minTp,
+		       decode(c.tp - d.tp, null, '-', to_char(c.tp - d.tp,'fm999,999,990')) tpGap,
+		       decode(e.msrp, null, '-', to_char(e.msrp,'fm999,999,990')) as maxSumSalesMsrp,
+		       decode(e.tp, null, '-', to_char(e.tp,'fm999,999,990')) as maxSumSalesTp,
+		       decode(f.msrp, null, '-', to_char(f.msrp,'fm999,999,990')) as maxAvgSalesMsrp,
+		       decode(f.tp, null, '-', to_char(f.tp,'fm999,999,990')) as maxAvgSalesTp
+		from (select * from dm_sub_model dsm
+		      where dsm.sub_model_id in ($value$)
+		     ) dsm
+		inner join (select * from temp_datas t where t.maxMsrpNum = 1) t
+		  on t.sub_model_id = dsm.sub_model_id
+		inner join (select * from temp_datas t where t.minMsrpNum = 1) b
+		  on b.sub_model_id = dsm.sub_model_id
+		inner join (select * from temp_datas t where t.maxTpNum = 1) c
+		  on c.sub_model_id = dsm.sub_model_id
+		inner join (select * from temp_datas t where t.minTpNum = 1) d
+		  on d.sub_model_id = dsm.sub_model_id
+		inner join (select * from temp_datas t where t.sum_ranks = 1) e
+		  on e.sub_model_id = dsm.sub_model_id
+		inner join (select * from temp_datas t where t.avg_ranks = 1) f
+		  on f.sub_model_id = dsm.sub_model_id
+		$modelOrder$
+	</select>
+	
+	<!-- ..................model end.............................. -->
+	
+	<!-- ..................非车型维度 钻取  开始.............................. -->
+	<resultMap class="com.ways.app.module.entity.ThoroughDataEntity" id="thoroughDataEntity">
+		<result property="sumRanks" column="sum_Ranks"/>
+		<result property="id" column="id"/>
+		<result property="name" column="name"/>
+		<result property="sales" column="sales"/>
+		<result property="zs" column="zs"/>
+		<result property="mix" column="mix"/>
+		<result property="mixChanges" column="mixChanges"/>
+		<result property="tp" column="tp"/>
+		<result property="msrp" column="msrp"/>
+	</resultMap>
+	<!-- 非车型维度 钻取 其他 -->
+	<select id="getOtherThoroughOtherData" parameterClass="java.util.HashMap" resultMap="priceSalesOfTop.thoroughDataEntity">
+		with
+		base_date as/*时间表*/
+		(
+		  select '$startDate$' startDate,
+		         '$endDate$' endDate,
+		         months_between(to_date('$endDate$','yyyymm'),to_date('$startDate$','yyyymm'))+1 monthCount,/*start,end*/
+		         1 rn
+		  from dual
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select '$endStartDate$' startDate,
+			         '$endEndDate$' endDate,
+			         months_between(to_date('$endEndDate$','yyyymm'),to_date('$endStartDate$','yyyymm'))+1 monthCount,
+			         2 rn
+			  from dual
+		  </isEqual>
+		)
+		,datas as
+		(
+		select MONTHCOUNT, RN, ID,sum(bq_sales) bq_sales from (
+		  select d.monthCount,d.rn,
+		  		 <isEqual property="thoroughObjectType" compareValue="pooAttr">
+		  		 	case when sm.poo_attribute_id = 2 then 3 else sm.poo_attribute_id end id, /*钻取的维度*/
+		  		 </isEqual>
+		  		 <isNotEqual property="thoroughObjectType" compareValue="pooAttr">
+		  		 	<include refid="otherThoroughOtherGroup"/> id, /*钻取的维度*/
+		  		 </isNotEqual>
+		         sum(x.bq_sales) bq_sales
+		  from <include refid="sourceSalesTables"/> x,base_date d<include refid="otherTables" />
+		  	   <isNotEqual property="objectType" compareValue="segment">
+			  	   <isEqual property="thoroughObjectType" compareValue="segment">
+			  	   	,(select distinct g.sub_model_id,g.sub_grade_id,g.sub_grade_name from dm_sub_grade_new g where g.levelflag = 3) g
+			  	   </isEqual>
+		  	   </isNotEqual>
+		  where ym between d.startDate and d.endDate
+		    <isNotEqual property="objectType" compareValue="segment">
+			    <isEqual property="thoroughObjectType" compareValue="segment">
+			        and g.sub_model_id = sm.sub_model_id
+			    </isEqual>
+		    </isNotEqual>
+		    <isNotEmpty property="bodyType">
+		    	and sm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and sm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		    	and sm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <include refid="otherTablesWhere" />
+		    <include refid="sourceSalesWhere"/>
+		    $priceRange$
+		  group by d.monthCount,d.rn,<include refid="otherThoroughOtherGroup" />
+		) group by MONTHCOUNT, RN, ID
+		)
+		,sum_datas as/*获取放大的总销量*/
+		(
+		  select rn,sum(bq_sales) source_Sales,to_number('$allShow$') show_Sales 
+		  from datas where rn = 1
+		  group by rn
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select rn,sum(bq_sales) source_Sales,to_number('$vsAllShow$') show_Sales 
+			  from datas where rn = 2
+			  group by rn
+		  </isEqual>
+		)
+		,all_datas as/*放大*/
+		(
+		  select a.*,
+		         case when nvl(a.bq_sales,0) = 0 or nvl(b.source_sales,0) = 0
+		           then 0
+		           else round((a.bq_sales / b.source_sales) * 100,1)
+		         end pct,
+		         case when nvl(a.bq_sales,0) = 0 or nvl(b.show_sales,0) = 0 or nvl(b.source_sales,0) = 0
+		           then 0
+		           else round((a.bq_sales / b.source_sales) * b.show_sales)
+		         end sales
+		  from datas a,sum_datas b
+		  where a.rn = b.rn
+		)
+		select sum_ranks,to_char(id) id,name,sales,zs,mix,mixChanges,tp,msrp
+		from 
+		(
+		  select b.id, <include refid="otherThoroughOtherName" /> name,
+		  		 <isEqual property="dataType" compareValue="avg">
+		  		 	to_char(nvl(b.sales / b.monthCount ,0),'fm999,999,990') sales,
+		  		 </isEqual>
+		  		 <isEqual property="dataType" compareValue="sum">
+		         	to_char(nvl(b.sales,0),'fm999,999,990') sales,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="t">
+			         case when nvl(b.sales,0) = 0 or nvl(c.sales,0) = 0
+			           then '-'
+			           else to_char((round(b.sales) - round(c.sales)) / round(c.sales) * 100,'fm999,999,990.0')
+			         end zs,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' zs,
+		         </isEqual>
+		         to_char(nvl(b.pct,0),'fm999,999,990.0') mix,
+		         <isEqual property="isVsTime" compareValue="t">
+		         	to_char(nvl(b.pct,0) - nvl(c.pct,0),'fm999,999,990.0') mixChanges,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' mixChanges,
+		         </isEqual>
+		         '' tp,
+		         '' msrp,
+		         row_number() over(order by b.sales desc nulls last) sum_ranks
+		  from all_datas b
+		  <include refid="otherThoroughOtherLeft" />
+		  <isEqual property="isVsTime" compareValue="t">
+			  left join all_datas c
+			    on b.rn = (c.rn - 1)
+			   and b.id = c.id
+		  </isEqual>
+		  where b.rn = 1
+		) order by sum_ranks
+	</select>
+	
+	<!-- 非车型维度 钻取 城市层级 -->
+	<select id="getOtherThoroughCityData" parameterClass="java.util.HashMap" resultMap="priceSalesOfTop.thoroughDataEntity">
+		with
+		base_date as/*时间表*/
+		(
+		  select '$startDate$' startDate,
+		         '$endDate$' endDate,
+		         months_between(to_date('$endDate$','yyyymm'),to_date('$startDate$','yyyymm'))+1 monthCount,/*start,end*/
+		         1 rn
+		  from dual
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select '$endStartDate$' startDate,
+			         '$endEndDate$' endDate,
+			         months_between(to_date('$endEndDate$','yyyymm'),to_date('$endStartDate$','yyyymm'))+1 monthCount,
+			         2 rn
+			  from dual
+		  </isEqual>
+		)
+		,city_temp as
+		(
+		  select distinct g.citygrade_id,g.citygrade_name,c.city_id,c.city_name,p.province_id,p.province_name,d.district_id,d.district_name
+		  from dm_city c,dm_province p,dm_district d,dm_district_province dp,dm_grade_city gc,dm_city_grade g
+		  where c.province_id = p.province_id
+		    and p.province_id = dp.province_id
+		    and d.district_id = dp.district_id
+		    and gc.city_id = c.city_id
+		    and gc.gradecity_id = g.citygrade_id
+		)
+		,datas as
+		(
+		  select d.monthCount,d.rn,
+		         ct.citygrade_id id, /*钻取的维度*/
+		         sum(x.bq_sales) bq_sales
+		  from FDM_VERSION_INSURANCE_MIX_city x,base_date d<include refid="otherTables" />,city_temp ct
+		  where ym between d.startDate and d.endDate
+		    and x.city_id = ct.city_id
+		    <isNotEmpty property="bodyType">
+		    	and sm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and sm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		    	and sm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <include refid="otherTablesWhere" />
+		    <isEqual property="cityType" compareValue="dist">
+				and ct.district_id in ($cityId$)
+			</isEqual>
+			<isEqual property="cityType" compareValue="prov">
+				and ct.province_id in ($cityId$)  
+			</isEqual>
+			<isEqual property="cityType" compareValue="city">
+				and ct.city_id in ($cityId$) 
+			</isEqual>
+		    $priceRange$
+		  group by d.monthCount,d.rn,ct.citygrade_id
+		)
+		,sum_datas as/*获取放大的总销量*/
+		(
+		  select rn,sum(bq_sales) source_Sales,to_number('$allShow$') show_Sales 
+		  from datas where rn = 1
+		  group by rn
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select rn,sum(bq_sales) source_Sales,to_number('$vsAllShow$') show_Sales 
+			  from datas where rn = 2
+			  group by rn
+		  </isEqual>
+		)
+		,all_datas as/*放大*/
+		(
+		  select a.*,
+		         case when nvl(a.bq_sales,0) = 0 or nvl(b.source_sales,0) = 0
+		           then 0
+		           else round((a.bq_sales / b.source_sales) * 100,1)
+		         end pct,
+		         case when nvl(a.bq_sales,0) = 0 or nvl(b.show_sales,0) = 0 or nvl(b.source_sales,0) = 0
+		           then 0
+		           else round((a.bq_sales / b.source_sales) * b.show_sales)
+		         end sales
+		  from datas a,sum_datas b
+		  where a.rn = b.rn
+		)
+		select sum_ranks,to_char(id) id,name,sales,zs,mix,mixChanges,tp,msrp
+		from 
+		(
+		  select b.id, m.citygrade_name name,
+		  		 <isEqual property="dataType" compareValue="avg">
+		  		 	to_char(nvl(b.sales / b.monthCount ,0),'fm999,999,990') sales,
+		  		 </isEqual>
+		  		 <isEqual property="dataType" compareValue="sum">
+		         	to_char(nvl(b.sales,0),'fm999,999,990') sales,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="t">
+			         case when nvl(b.sales,0) = 0 or nvl(c.sales,0) = 0
+			           then '-'
+			           else to_char((round(b.sales) - round(c.sales)) / round(c.sales) * 100,'fm999,999,990.0')
+			         end zs,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' zs,
+		         </isEqual>
+		         to_char(nvl(b.pct,0),'fm999,999,990.0') mix,
+		         <isEqual property="isVsTime" compareValue="t">
+		         	to_char(nvl(b.pct,0) - nvl(c.pct,0),'fm999,999,990.0') mixChanges,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' mixChanges,
+		         </isEqual>
+		         '' tp,
+		         '' msrp,
+		         row_number() over(order by b.sales desc nulls last) sum_ranks
+		  from all_datas b
+		  left join dm_city_grade m on b.id = m.citygrade_id
+		  <isEqual property="isVsTime" compareValue="t">
+			  left join all_datas c
+			    on b.rn = (c.rn - 1)
+			   and b.id = c.id
+		  </isEqual>
+		  where b.rn = 1
+		) order by sum_ranks
+	</select>
+	
+	
+	<!-- 非车型维度 钻取 车型 -->
+	<select id="getOtherThoroughModelData" parameterClass="java.util.HashMap" resultMap="priceSalesOfTop.thoroughDataEntity">
+		with
+		base_date as/*时间表*/
+		(
+		  select '$startDate$' startDate,
+		         '$endDate$' endDate,
+		         months_between(to_date('$endDate$','yyyymm'),to_date('$startDate$','yyyymm'))+1 monthCount,/*start,end*/
+		         1 rn
+		  from dual
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select '$endStartDate$' startDate,
+			         '$endEndDate$' endDate,
+			         months_between(to_date('$endEndDate$','yyyymm'),to_date('$endStartDate$','yyyymm'))+1 monthCount,
+			         2 rn
+			  from dual
+		  </isEqual>
+		)
+		,datas as
+		(
+		  select d.monthCount,d.rn,
+		         sm.sub_model_id id,
+		         sm.sub_model_name name,
+		         round(avg(x.msrp)) msrp,round(avg(x.tp)) tp,
+		         sum(x.bq_sales) bq_sales
+		  from <include refid="sourceSalesTables"/> x,base_date d<include refid="otherTables" />
+		  where ym between d.startDate and d.endDate
+		    <isNotEmpty property="bodyType">
+		    	and sm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and sm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		    	and sm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <include refid="otherTablesWhere" />
+		    <include refid="sourceSalesWhere"/>
+		    $priceRange$
+		    and x.bq_sales is not null
+		  group by d.monthCount,d.rn,sm.sub_model_id,sm.sub_model_name
+		)
+		,sum_datas as/*获取放大的总销量*/
+		(
+		  select monthCount,rn,sum(bq_sales) source_Sales,to_number('$allShow$') show_Sales,to_number('$allShow$') - sum(bq_sales) other
+		  from datas where rn = 1
+		  group by monthCount,rn
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select monthCount,rn,sum(bq_sales) source_Sales,to_number('$vsAllShow$') show_Sales,to_number('$vsAllShow$') - sum(bq_sales) other
+			  from datas where rn = 2
+			  group by monthCount,rn
+		  </isEqual>
+		)
+		,all_datas as/*处理多余的数据，归类到其他*/
+		(
+		  select * from datas
+		  union all
+		  select s.monthCount,s.rn,m.sub_model_id id,m.sub_model_name name,null msrp,null tp,s.other bq_sales
+		  from dm_sub_model m,sum_datas s
+		  where m.sub_model_id = 1072
+		    and s.other <![CDATA[ > ]]> 0
+		)
+		,get_MIX as
+		(
+		  select a.*,
+		         case when nvl(a.bq_sales,0) = 0 or nvl(b.show_Sales,0) = 0
+		           then 0
+		           else round((a.bq_sales / b.show_Sales) * 100,1)
+		         end pct,
+		         a.bq_sales sales
+		  from all_datas a,sum_datas b
+		  where a.rn = b.rn
+		)
+		select sum_ranks,to_char(id) id,name,sales,zs,mix,mixChanges,tp,msrp
+		from 
+		(
+		  select b.id,b.name,
+		         <isEqual property="dataType" compareValue="avg">
+		  		 	to_char(nvl(b.sales / b.monthCount ,0),'fm999,999,990') sales,
+		  		 </isEqual>
+		  		 <isEqual property="dataType" compareValue="sum">
+		         	to_char(nvl(b.sales,0),'fm999,999,990') sales,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="t">
+			         case when nvl(b.sales,0) = 0 or nvl(c.sales,0) = 0
+			           then '-'
+			           else to_char((round(b.sales) - round(c.sales)) / round(c.sales) * 100,'fm999,999,990.0')
+			         end zs,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' zs,
+		         </isEqual>
+		         to_char(nvl(b.pct,0),'fm999,999,990.0') mix,
+		         <isEqual property="isVsTime" compareValue="t">
+		         	to_char(nvl(b.pct,0) - nvl(c.pct,0),'fm999,999,990.0') mixChanges,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' mixChanges,
+		         </isEqual>
+		         to_char(nvl(b.tp,0),'fm999,999,990') tp,
+		         to_char(nvl(b.msrp,0),'fm999,999,990') msrp,
+		         row_number() over(order by b.sales desc nulls last) sum_ranks
+		  from get_MIX b
+		  <isEqual property="isVsTime" compareValue="t">
+			  left join get_MIX c
+			    on b.rn = (c.rn - 1)
+			   and b.id = c.id
+		  </isEqual>
+		  where b.rn = 1
+		) order by sum_ranks
+	</select>
+	<!-- ..................非车型维度 钻取  结束.............................. -->
+	
+	
+	<!-- ..................车型维度 钻取  开始.............................. -->
+	<select id="getModelThoroughData" parameterClass="java.util.HashMap" resultMap="priceSalesOfTop.thoroughDataEntity">
+		with
+		base_date as/*时间表*/
+		(
+		  select '$startDate$' startDate,
+		         '$endDate$' endDate,
+		         months_between(to_date('$endDate$','yyyymm'),to_date('$startDate$','yyyymm'))+1 monthCount,/*start,end*/
+		         1 rn
+		  from dual
+		  <isEqual property="isVsTime" compareValue="t">
+			  union all
+			  select '$endStartDate$' startDate,
+			         '$endEndDate$' endDate,
+			         months_between(to_date('$endEndDate$','yyyymm'),to_date('$endStartDate$','yyyymm'))+1 monthCount,
+			         2 rn
+			  from dual
+		  </isEqual>
+		)
+		,datas as
+		(
+		  select d.monthCount,d.rn,
+		         sm.sub_model_id id,
+         		 sm.sub_model_name name,
+		         round(avg(x.msrp)) msrp,round(avg(x.tp)) tp,
+		         sum(x.bq_sales) bq_sales
+		  from <include refid="sourceSalesTables"/> x,base_date d,dm_sub_model sm
+		  where ym between d.startDate and d.endDate
+		    and x.sub_model_id = sm.sub_model_id
+		    and x.sub_model_id in ($value$)
+		    <isNotEmpty property="bodyType">
+		    	and sm.body_type_id in ($bodyType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="portType">
+		    	and sm.poo_attribute_id in ($portType$)
+		    </isNotEmpty>
+		    <isNotEmpty property="originType">
+		    	and sm.orig_id in ($originType$)
+		    </isNotEmpty>
+		    <include refid="otherTablesWhere" />
+		    <include refid="sourceSalesWhere"/>
+		    $priceRange$
+		    and x.bq_sales is not null
+		  group by d.monthCount,d.rn,sm.sub_model_id,sm.sub_model_name
+		)
+		,get_sum as
+		(
+		  select rn,round(nvl(sum(bq_sales),0)) all_sales
+		  from datas
+		  group by rn
+		)
+		,get_mix as
+		(
+		  select a.*,
+		         case when nvl(a.bq_sales,0) = 0 or nvl(b.all_sales,0) = 0
+		           then 0
+		           else round((a.bq_sales / b.all_sales) * 100,1)
+		         end pct,
+		         a.bq_sales sales
+		  from datas a,get_sum b
+		  where a.rn = b.rn
+		)
+		select sum_ranks,to_char(id) id,name,sales,zs,mix,mixChanges,tp,msrp
+		from 
+		(
+		  select b.id,b.name,
+		  		 <isEqual property="dataType" compareValue="avg">
+		  		 	to_char(nvl(b.sales / b.monthCount,0),'fm999,999,990') sales,
+		  		 </isEqual>
+		  		 <isEqual property="dataType" compareValue="sum">
+		         	to_char(nvl(b.sales,0),'fm999,999,990') sales,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="t">
+			         case when nvl(b.sales,0) = 0 or nvl(c.sales,0) = 0
+			           then '-'
+			           else to_char((round(b.sales) - round(c.sales)) / round(c.sales) * 100,'fm999,999,990.0')
+			         end zs,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' zs,
+		         </isEqual>
+		         to_char(nvl(b.pct,0),'fm999,999,990.0') mix,
+		         <isEqual property="isVsTime" compareValue="t">
+		         	to_char(nvl(b.pct,0) - nvl(c.pct,0),'fm999,999,990.0') mixChanges,
+		         </isEqual>
+		         <isEqual property="isVsTime" compareValue="f">
+		         	'-' mixChanges,
+		         </isEqual>
+		         to_char(nvl(b.tp,0),'fm999,999,990') tp,
+		         to_char(nvl(b.msrp,0),'fm999,999,990') msrp,
+		         row_number() over(order by b.sales desc nulls last) sum_ranks
+		  from get_MIX b
+		  <isEqual property="isVsTime" compareValue="t">
+			  left join get_MIX c
+			    on b.rn = (c.rn - 1)
+			   and b.id = c.id
+		  </isEqual>
+		  where b.rn = 1
+		) order by sum_ranks
+	</select>
+	
+	
+	
+	
+</sqlMap>

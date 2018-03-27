@@ -1,0 +1,2308 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="priceSalesAnalysis_grade">
+
+<resultMap class="com.ways.app.module.entity.PriceSegmentOverview" id="overview" groupBy="segment">
+			 <result property="segment" column="segment" nullValue=""/> 
+			 <result property="accBqSales" column="actrueBqSales" nullValue=""/> 
+			 <result property="accTqSales" column="actrueTqSales" nullValue=""/> 
+			 <result property="growthRate" column="yoy" nullValue=""/> 
+			 <result property="bqmix" column="accBqTotalMix" nullValue=""/> 
+			 <result property="mixChange" column="mixChanges" nullValue=""/> 
+			 <result property="totalBqAccSales" column="accbqsales" nullValue=""/> 
+			 <result property="totalTqAccSales" column="acctqsales" nullValue=""/> 
+			 <result property="totalGrowthRate" column="totalyoy" nullValue=""/> 
+		    
+	  		 <result property="list" resultMap="priceSalesAnalysis.dimensionData" /> 
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.DimensionDataEntity" id="dimensionData" groupBy="attributeId">
+		<result property="attributeId" column="attributeId" nullValue=""/> 
+		<result property="attributeName" column="attributeName" nullValue=""/> 
+	  	<result property="list" resultMap="priceSalesAnalysis.attributeChangeData" />
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.AttributeChangeDataEntity" id="attributeChangeData">
+		 <result property="sales" column="sales_attr" nullValue=""/> 
+  		 <result property="salesChange" column="salesChange_attr" nullValue=""/>
+  		 <result property="mix" column="mix_attr" nullValue=""/>
+  		 <result property="mixChange" column="mixChange_attr" nullValue=""/>
+  		 <result property="shares" column="shares_attr" nullValue=""/>
+  		 <result property="sharesChange" column="sharesChange_attr" nullValue=""/>
+  		 
+  		 <!-- <result property="totalMix" column="totalMix_attr" nullValue=""/>
+  		 <result property="totalMixChange" column="totalMixChange_attr" nullValue=""/> -->
+  		 <result property="totalSales" column="totalSales_attr" nullValue=""/> 
+  		 <result property="totalSalesChange" column="totalSalesChange_attr" nullValue=""/>
+  		 <result property="totalShares" column="totalShares_attr" nullValue=""/> 
+  		 <result property="totalSharesChange" column="totalSharesChanges" nullValue=""/> 
+  		     
+  		 <result property="allMix" column="allMix_attr" nullValue=""/>
+  		 <result property="allMixchange" column="allMixchange_attr" nullValue=""/>
+  		 <result property="allSales" column="allSales_attr" nullValue=""/> 
+  		 <result property="allSalesChange" column="allSalesChange_attr" nullValue=""/>
+  		 <result property="allTotalSales" column="accbqAllsales_attr" nullValue=""/> 
+  		 <result property="allTotalSalesChange" column="totalAllyoy_attr" nullValue=""/>
+  		 <!-- <result property="allShares" column="allShares_attr" nullValue=""/> 
+  		 <result property="allSharesChange" column="allSharesChange_attr" nullValue=""/> -->
+	</resultMap>
+<!-- 价格段概览左边数据条件 -->	
+<sql id="tableSql_all">
+	<isNotEmpty property="bodyType">
+		left join dm_body_type dbt
+		on m.body_type_id = dbt.body_type_id
+	</isNotEmpty>
+	<isNotEmpty property="original">
+		left join dm_original do
+		on m.orig_id = do.original_id
+	</isNotEmpty>
+	<isNotEmpty property="pooAttribute">
+		left join dm_poo_attribute dpa
+		on m.POO_ATTRIBUTE_ID = dpa.POO_ATTRIBUTE_ID
+	</isNotEmpty>
+	<isEqual property="tabType" compareValue="t-7"><!-- 汽车类型时，是否豪华车 -->
+		 left join dm_sub_grade_new sgnl
+    		on t.sub_model_id = sgnl.sub_model_id
+	</isEqual>
+	<isNotEqual property="tabType" compareValue="t-1">
+		<isNotEmpty property="subGradeIds_all">
+			left join dm_sub_grade_new sgn
+			on t.sub_model_id = sgn.sub_model_id
+		</isNotEmpty>
+	</isNotEqual>
+	<isNotEmpty property="manfIds_all">
+		left join dm_manf dm
+		on m.manf_id = dm.manf_id
+	</isNotEmpty>
+	<isNotEmpty property="manfBrandIds_all">
+		left join dm_manf_brand dmb
+		on m.manf_brand_id = dmb.manf_brand_id
+	</isNotEmpty>
+	<isNotEmpty property="brandIds_all">
+		left join dm_brand db
+		on m.brand_id = db.brand_id
+	</isNotEmpty>
+</sql>	
+<sql id="paramSql_all">
+	<isNotEmpty property="bodyType">
+		and dbt.body_type_id in ($bodyType$)
+	</isNotEmpty>
+	<isNotEmpty property="original">
+		and do.original_id in ($original$)
+	</isNotEmpty>
+	<isNotEmpty property="pooAttribute">
+		and dpa.POO_ATTRIBUTE_ID in ($pooAttribute$)
+	</isNotEmpty>
+	<isEqual property="tabType" compareValue="t-7"><!-- 汽车类型时，是否豪华车 -->
+		 <isEqual property="tabLc" compareValue="1">
+		 	and sgnl.levelflag = 3
+   				and sgnl.sub_grade_name like '%Luxury%'
+		 </isEqual>
+		 <isNotEqual property="tabLc" compareValue="1">
+		 	and sgnl.levelflag = 3
+   				and sgnl.sub_grade_name not like '%Luxury%'
+		 </isNotEqual>
+	</isEqual>
+	<isEqual property="cityType" compareValue="dist">
+		and t.district_id in ($cityId$)
+	</isEqual>
+	<isEqual property="cityType" compareValue="prov">
+		and t.province_id in ($cityId$)  
+	</isEqual>
+	<isEqual property="cityType" compareValue="city">
+		and t.city_id in ($cityId$) 
+	</isEqual>
+	
+	<isNotEqual property="tabType" compareValue="t-1">
+		<isNotEmpty property="subGradeIds_all">
+			and sgn.sub_grade_id in ($subGradeIds_all$)
+		</isNotEmpty>
+	</isNotEqual>
+	
+	<isNotEmpty property="manfIds_all">
+		and dm.manf_id in ($manfIds_all$)
+	</isNotEmpty>
+	<isNotEmpty property="manfBrandIds_all">
+		and dmb.manf_brand_id in ($manfBrandIds_all$)
+	</isNotEmpty>
+	<isNotEmpty property="brandIds_all">
+		and db.brand_id in ($brandIds_all$)
+	</isNotEmpty>
+	<!-- <isNotEmpty property="modelIds">
+		and t.sub_model_id in ($modelIds$)
+	</isNotEmpty> -->
+	<isNotEmpty property="subModelIds_all">
+		and t.sub_model_id in ($subModelIds_all$)
+	</isNotEmpty>
+</sql>	
+<!-- 各属性数据条件 -->	
+<sql id="tableSql">
+	<isNotEmpty property="bodyType">
+		left join dm_body_type dbt
+		on m.body_type_id = dbt.body_type_id
+	</isNotEmpty>
+	<isNotEmpty property="original">
+		left join dm_original do
+		on m.orig_id = do.original_id
+	</isNotEmpty>
+	<isNotEmpty property="pooAttribute">
+		left join dm_poo_attribute dpa
+		on m.POO_ATTRIBUTE_ID = dpa.POO_ATTRIBUTE_ID
+	</isNotEmpty>
+	<isEqual property="tabType" compareValue="t-7"><!-- 汽车类型时，是否豪华车 -->
+		 left join dm_sub_grade_new sgnl
+    		on t.sub_model_id = sgnl.sub_model_id
+	</isEqual>
+	
+	<isNotEmpty property="manfIds">
+		left join dm_manf dm
+		on m.manf_id = dm.manf_id
+	</isNotEmpty>
+	<isNotEmpty property="manfBrandIds">
+		left join dm_manf_brand dmb
+		on m.manf_brand_id = dmb.manf_brand_id
+	</isNotEmpty>
+	<isNotEmpty property="brandIds">
+		left join dm_brand db
+		on m.brand_id = db.brand_id
+	</isNotEmpty>
+</sql>	
+<sql id="paramSql">
+	<isNotEmpty property="bodyType">
+		and dbt.body_type_id in ($bodyType$)
+	</isNotEmpty>
+	<isNotEmpty property="original">
+		and do.original_id in ($original$)
+	</isNotEmpty>
+	<isNotEmpty property="pooAttribute">
+		and dpa.POO_ATTRIBUTE_ID in ($pooAttribute$)
+	</isNotEmpty>
+	<isEqual property="tabType" compareValue="t-7"><!-- 汽车类型时，是否豪华车 -->
+		 <isEqual property="tabLc" compareValue="1">
+		 	and sgnl.levelflag = 3
+   				and sgnl.sub_grade_name like '%Luxury%'
+		 </isEqual>
+		 <isNotEqual property="tabLc" compareValue="1">
+		 	and sgnl.levelflag = 3
+   				and sgnl.sub_grade_name not like '%Luxury%'
+		 </isNotEqual>
+	</isEqual>
+	<isEqual property="cityType" compareValue="dist">
+		and t.district_id in ($cityId$)
+	</isEqual>
+	<isEqual property="cityType" compareValue="prov">
+		and t.province_id in ($cityId$)  
+	</isEqual>
+	<isEqual property="cityType" compareValue="city">
+		and t.city_id in ($cityId$) 
+	</isEqual>
+	<isNotEmpty property="manfIds">
+		and dm.manf_id in ($manfIds$)
+	</isNotEmpty>
+	<isNotEmpty property="manfBrandIds">
+		and dmb.manf_brand_id in ($manfBrandIds$)
+	</isNotEmpty>
+	<isNotEmpty property="brandIds">
+		and db.brand_id in ($brandIds$)
+	</isNotEmpty>
+	<!-- <isNotEmpty property="modelIds">
+		and t.sub_model_id in ($modelIds$)
+	</isNotEmpty> -->
+	<isNotEmpty property="subModelIds">
+		and t.sub_model_id in ($subModelIds$)
+	</isNotEmpty>
+</sql>	
+<!-- 不同地区条件，不同的表 -->
+<sql id="mixTableSql">
+		<isEqual property="cityType" compareValue="state">
+			FDM_VERSION_INSURANCE_MIX_SP
+		</isEqual>
+		<isEqual property="cityType" compareValue="dist">
+			fdm_version_insurance_mix_dist 
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			fdm_version_insurance_mix_prov 
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			FDM_VERSION_INSURANCE_MIX_city 
+		</isEqual>
+	</sql>
+	
+	<sql id="actrueSalesTables">
+		<isEqual property="cityType" compareValue="state">
+			fdm_state_insurance 
+		</isEqual>
+		<isEqual property="cityType" compareValue="dist">
+			fdm_dist_insurance 
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			fdm_prov_insurance 
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			fdm_city_insurance 
+		</isEqual>
+	</sql>
+	
+<!-- state表销量字段为bq_sales，dist、prov、city表销量字段为bq_reg_qty -->
+<sql id="salesElement">
+	<isEqual property="cityType" compareValue="state">
+		t.bq_sales 
+	</isEqual>
+	<isNotEqual property="cityType" compareValue="state">
+		t.bq_reg_qty 
+	</isNotEqual>
+</sql>
+
+<resultMap class="com.ways.app.module.entity.PriceSegmentOverview" id="overview_1" groupBy="segment">
+	 <result property="segment" column="segment" nullValue=""/> 
+	 <result property="accBqSales" column="actrueBqSales" nullValue=""/> 
+	 <result property="accTqSales" column="actrueTqSales" nullValue=""/> 
+	 <result property="growthRate" column="yoy" nullValue=""/> 
+	 <result property="bqmix" column="accBqTotalMix" nullValue=""/> 
+	 <result property="tqmix" column="accTqTotalMix" nullValue=""/> 
+	 <result property="mixChange" column="mixChanges" nullValue=""/> 
+	 <result property="totalBqAccSales" column="accbqsales" nullValue=""/> 
+	 <result property="totalTqAccSales" column="acctqsales" nullValue=""/> 
+	 <result property="totalGrowthRate" column="totalyoy" nullValue=""/> 
+    
+</resultMap>
+
+
+<!-- 累计总数据sql -->
+<sql id="accTotalSql">
+t1 as
+ (select distinct  sub_grade_id ,connect_by_root p_sub_grade_id p_sub_grade_id
+  from dm_sub_grade_new 
+  where levelflag = 3
+  connect by prior sub_grade_id = p_sub_grade_id 
+  <isNotEmpty property="subGradeIds_all">
+	 start with p_sub_grade_id in ($subGradeIds_all$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds_all">
+	 start with p_sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+ 
+ order by sub_grade_id),
+t2 as
+ (select distinct sub_grade_id, sub_grade_name
+    from dm_sub_grade_new
+   where 
+   <isNotEmpty property="subGradeIds_all">
+	 sub_grade_id in ($subGradeIds_all$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds_all">
+	 sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+   ),
+t3 as (select t2.sub_grade_id p_sub_grade_id,
+       t2.sub_grade_name,
+       case
+         when t1.sub_grade_id is not null then
+          t1.sub_grade_id
+         else
+          t2.sub_grade_id
+       end sub_grade_id
+  from t2
+  left join t1
+    on t2.sub_grade_id = t1.p_sub_grade_id),
+left_table3 as
+ (select l.segment, l.fsort,t.sub_grade_id,t.sub_grade_name,t.p_sub_grade_id
+    from left_table l
+    left join t3 t
+      on  1=1
+   ),
+bqtotalsales as
+ (select sum(t.bq_sales) accBqTotalSales, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    <include refid="tableSql_all"/>
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+   where t.ym between $startYm$ and $endYm$
+   	<include refid="paramSql_all"/>
+   	and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id
+   ),
+tqtotalsales as
+ (select sum(t.bq_sales) accTqTotalSales, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>
+   where 
+   t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql_all"/>
+   and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id
+  ),
+totalSales as
+ (select b.accBqTotalSales, t.accTqTotalSales
+ 		,case
+           when b.sub_grade_id is not null then
+            b.sub_grade_id
+           else
+            t.sub_grade_id
+         end sub_grade_id
+    from bqtotalsales b
+    full join tqtotalsales t
+      on b.sub_grade_id = t.sub_grade_id),
+accbqRegionSaledata as
+ (select 
+ 	$priceSegmentSql$
+	 fsort,
+     sum(t.bq_sales) accRegionBqSales
+     , g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    <include refid="tableSql_all"/>
+    left join dm_version v
+      on t.version_id = v.version_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id  
+   where t.ym between $startYm$ and $endYm$
+   <include refid="paramSql_all"/>
+     <!-- and t.bq_sales is not null -->
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by 
+	$priceSegmentSql$
+	,g.sub_grade_id
+   order by fsort),
+bqRegionMixdata as
+ (select a.fsort,
+         a.accRegionBqSales,
+         a.sub_grade_id,
+         case
+           when b.accBqTotalSales is not null and b.accBqTotalSales !=0 then
+            a.accRegionBqSales / b.accBqTotalSales
+           else
+            null
+         end accBqTotalMix
+    from accbqRegionSaledata a
+    left join totalSales b
+      on a.sub_grade_id = b.sub_grade_id),   
+acctqRegionSaledata as
+ (select 
+ 	$priceSegmentSql$
+  	fsort,
+    sum(t.bq_sales) accRegionTqSales
+    , g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    <include refid="tableSql_all"/>
+    left join dm_version v
+      on t.version_id = v.version_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id    
+   where t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql_all"/>
+     <!-- and t.bq_sales is not null -->
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by 
+   $priceSegmentSql$
+   ,g.sub_grade_id
+   order by fsort),
+tqRegionMixdata as
+ (select a.fsort,
+         a.accRegionTqSales,
+         a.sub_grade_id,
+         case
+           when b.accTqTotalSales is not null and b.accTqTotalSales !=0 then
+            a.accRegionTqSales / b.accTqTotalSales
+           else
+            null
+         end accTqTotalMix
+    from acctqRegionSaledata a
+    left join totalSales b
+      on a.sub_grade_id = b.sub_grade_id),
+regionMixdata as
+ (select  case when  a.fsort is null then
+           b.fsort else a.fsort end fsort,
+         a.accRegionBqSales,
+         case
+           when a.sub_grade_id is null then
+            b.sub_grade_id
+           else
+            a.sub_grade_id
+         end sub_grade_id,
+         a.accBqTotalMix,
+         b.accRegionTqSales,
+         b.accTqTotalMix
+    from bqRegionMixdata a
+    full join tqRegionMixdata b
+      on a.fsort = b.fsort
+     and a.sub_grade_id = b.sub_grade_id),
+left_grade_table as
+ (select l.fsort,
+         l.segment,
+         l.p_sub_grade_id,
+         l.sub_grade_name,
+         b.accBqTotalMix,
+         b.accTqTotalMix
+         ,b.sub_grade_id
+    from left_table3 l
+    left join regionMixdata b
+      on l.fsort = b.fsort
+      and l.sub_grade_id = b.sub_grade_id
+   order by l.fsort),
+accbqactrueGradeSales as
+ (select sum(<include refid="salesElement"/>) accbqsales, g.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>  
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   <include refid="paramSql_all"/>
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id),
+acctqactrueGradeSales as
+ (select sum(<include refid="salesElement"/>) acctqsales, g.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>  
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+   <include refid="paramSql_all"/>
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id),
+accactrueGradeSales as
+ (select a.accbqsales,
+         b.acctqsales,
+         case
+           when a.sub_grade_id is not null then
+            a.sub_grade_id
+           else
+            b.sub_grade_id
+         end sub_grade_id
+    from accbqactrueGradeSales a
+    full join acctqactrueGradeSales b
+      on a.sub_grade_id = b.sub_grade_id),     
+actrueRegionSales as
+ (select l.fsort,
+         l.segment,
+         l.sub_grade_name,
+         l.accBqTotalMix * t.accbqsales actrueBqSales,
+         l.accTqTotalMix * t.acctqsales actrueTqSales,
+	     l.p_sub_grade_id sub_grade_id
+    from left_grade_table l
+    left join accactrueGradeSales t
+      on l.sub_grade_id = t.sub_grade_id),
+left_actrue_sales as
+ (select l.fsort,
+         l.segment,
+         sum(l.actrueBqSales) actrueBqSales,
+         sum(l.actrueTqSales) actrueTqSales
+    from actrueRegionSales l
+   group by  l.fsort, l.segment
+   ),                        
+accbqactrueTotalSales as
+ (select sum(<include refid="salesElement"/>)  accbqsales
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   <include refid="paramSql_all"/>
+  and g.sub_grade_id in (select sub_grade_id from t3)
+  ),
+acctqactrueTotalSales as
+ (	select 
+    sum(<include refid="salesElement"/>)  acctqsales
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+     <include refid="tableSql_all"/>
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+    <include refid="paramSql_all"/>
+  and g.sub_grade_id in (select sub_grade_id from t3)
+  ),
+accactrueTotalSales as (
+      select * from accbqactrueTotalSales a  left join acctqactrueTotalSales b on 1=1
+  ),
+total_table_1 as(
+   select l.fsort,
+         l.segment,
+         l.actrueBqSales,
+         l.actrueTqSales,
+         case
+           when b.accbqsales is not null then
+            l.actrueBqSales / b.accbqsales
+           else
+            null
+         end accBqTotalMix,
+         case
+           when b.acctqsales is not null then
+            l.actrueTqSales / b.acctqsales
+           else
+            null
+         end accTqTotalMix,
+         b.accbqsales,
+         b.acctqsales,
+         case
+           when l.actrueTqSales is not null then
+            (l.actrueBqSales - l.actrueTqSales) / l.actrueTqSales
+           else
+            null
+         end yoy,
+         case
+           when b.acctqsales is not null then
+            (b.accbqsales - b.acctqsales) / b.acctqsales
+           else
+            null
+         end totalyoy,
+         
+          case when nvl(l.actrueBqSales / b.accbqsales,0)=0 and nvl(l.actrueTqSales / b.acctqsales,0)!=0
+            then 0 - l.actrueTqSales / b.acctqsales 
+         when  nvl(l.actrueBqSales / b.accbqsales,0)!=0 and nvl(l.actrueTqSales / b.acctqsales,0)=0
+            then l.actrueBqSales / b.accbqsales
+         when  nvl(l.actrueBqSales / b.accbqsales,0)!=0 and nvl(l.actrueTqSales / b.acctqsales,0)!=0
+            then l.actrueBqSales / b.accbqsales - l.actrueTqSales / b.acctqsales 
+           else null end  mixChanges
+         
+    from left_actrue_sales l
+    left join accactrueTotalSales b
+      on 1 = 1
+   order by l.fsort
+),
+total_table as (
+  select distinct a.*,
+         b.sub_grade_id,
+         b.sub_grade_name
+         from 
+           total_table_1 a
+           left join  dm_sub_grade_new b
+           on 1=1
+            where b.sub_grade_id in ($subGradeIds$)
+),  
+</sql>
+
+<!-- 细分市场 -->
+<select id="getGradeData" parameterClass="java.util.HashMap" resultMap="overview">
+with left_table as
+	(
+		$leftSegmentSql$
+	),
+left_table2 as (
+	select distinct l.segment,l.fsort,o.sub_grade_id,o.sub_grade_name
+  	 ,case when o.sub_grade_id = -2 then -4
+  	  when o.sub_grade_id = -4 then -3
+  	  when o.sub_grade_id = -3 then -2
+  	  when o.sub_grade_id = -5 then -1
+  	  else vg.sn end sort_num
+  	 <!-- vg.sn sort_num -->
+  from left_table l left join (select distinct sub_grade_id ,sub_grade_name from dm_sub_grade_new) o
+  on 1=1
+  left join v_sub_grade vg
+    on o.sub_grade_id = vg.SUB_GRADE_ID
+  where o.sub_grade_id in ($subGradeIds$)
+  <!-- select distinct l.segment,l.fsort,o.sub_grade_id,o.sub_grade_name
+  	 ,row_number() over(partition by l.fsort order by instr(#subGradeIds#, o.sub_grade_id)) sort_num
+  from left_table l left join (select distinct sub_grade_id ,sub_grade_name from dm_sub_grade_new) o
+  on 1=1
+  where o.sub_grade_id in ($subGradeIds$) -->
+),
+<include refid="accTotalSql"/>
+
+<!-- tab页细分市场条件，以此获取第四级id -->
+t4 as
+ (select distinct  sub_grade_id ,connect_by_root p_sub_grade_id p_sub_grade_id
+  from dm_sub_grade_new 
+  where levelflag = 3
+  connect by prior sub_grade_id = p_sub_grade_id 
+  <isNotEmpty property="subGradeIds">
+	 start with p_sub_grade_id in ($subGradeIds$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds">
+	 start with p_sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+ 
+ order by sub_grade_id),
+t5 as
+ (select distinct sub_grade_id, sub_grade_name
+    from dm_sub_grade_new
+   where 
+   <isNotEmpty property="subGradeIds">
+	 sub_grade_id in ($subGradeIds$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds">
+	 sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+   ),
+t6 as (select t5.sub_grade_id p_sub_grade_id,
+       t5.sub_grade_name,
+       case
+         when t4.sub_grade_id is not null then
+          t4.sub_grade_id
+         else
+          t5.sub_grade_id
+       end sub_grade_id
+  from t5
+  left join t4
+    on t5.sub_grade_id = t4.p_sub_grade_id),
+<!-- 各子车型总销量 -->     
+<!--本期 -->     
+bqTotalSales_attr as
+ (select sum(t.bq_sales) accBqTotalSales_attr, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.SUB_MODEL_ID
+      <include refid="tableSql"/>
+   where t.ym between $startYm$ and $endYm$
+      <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+   group by g.sub_grade_id),
+<!--同期 -->
+tqTotalSales_attr as
+ (select sum(t.bq_sales) accTqTotalSales_attr, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+     left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.SUB_MODEL_ID
+      <include refid="tableSql"/>
+   where t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+   group by g.sub_grade_id),
+totalSales_attr as
+ (select b.accBqTotalSales_attr, 
+     case when b.sub_grade_id is not null then b.sub_grade_id else t.sub_grade_id end sub_grade_id ,
+     t.accTqTotalSales_attr
+    from bqTotalSales_attr b
+    full join tqTotalSales_attr t
+      on b.sub_grade_id = t.sub_grade_id),
+      
+<!--细分市场区间销量 ，本期-->
+bqRegionSales_attr as
+ (select  $priceSegmentSql$
+ 		fsort,
+         sum(t.bq_sales) accBqSales_attr,
+         g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+      <include refid="tableSql"/>
+   where t.ym between $startYm$ and $endYm$
+   <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+     and t.bq_sales is not null
+   group by $priceSegmentSql$,
+            g.sub_grade_id
+   order by fsort),
+<!--同期 -->
+tqRegionSales_attr as
+ (select $priceSegmentSql$ fsort,
+         sum(t.bq_sales) accTqSales_attr,
+         g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+      <include refid="tableSql"/>
+   where t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+     and t.bq_sales is not null
+   group by $priceSegmentSql$,
+            g.sub_grade_id
+   order by fsort),
+
+bqsubmodelmix_table as (
+  select r.fsort,r.accbqsales_attr,r.sub_grade_id,
+     case when t.accBqTotalSales_attr is not null and t.accBqTotalSales_attr !=0 then
+       r.accBqSales_attr / t.accBqTotalSales_attr 
+        else null
+          end bqRegionMix_attr
+   from bqRegionSales_attr r left join totalSales_attr t 
+   on  r.sub_grade_id = t.sub_grade_id
+),
+tqsubmodelmix_table as (
+  select r.fsort,r.acctqsales_attr,r.sub_grade_id,
+     case when t.accTqTotalSales_attr is not null and t.accTqTotalSales_attr !=0 then
+       r.accTqSales_attr / t.accTqTotalSales_attr 
+        else null
+          end tqRegionMix_attr
+   from tqRegionSales_attr r left join totalSales_attr t 
+   on  r.sub_grade_id = t.sub_grade_id
+),
+<!-- 细分市场实际总销量 -->
+bqActrueTotalSales_attr as (
+ select  sum(<include refid="salesElement"/>) accbqsales_attr,g.sub_grade_id
+      from <include refid="actrueSalesTables" /> t
+      left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+     left join dm_sub_grade_new g
+         on t.sub_model_id = g.SUB_MODEL_ID
+        <include refid="tableSql"/> 
+     where 
+     t.year || lpad(t.month_id,2,0)  between $startYm$ and $endYm$
+     <include refid="paramSql"/>
+   and g.SUB_GRADE_ID in (select sub_grade_id from t6) 
+   group by g.sub_grade_id 
+),
+tqActrueTotalSales_attr as (
+ select  sum(<include refid="salesElement"/>) acctqsales_attr,g.sub_grade_id
+      from <include refid="actrueSalesTables" /> t
+      left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+     left join dm_sub_grade_new g
+         on t.sub_model_id = g.SUB_MODEL_ID
+         <include refid="tableSql"/> 
+     where 
+     t.year || lpad(t.month_id,2,0)  between $startLastYm$ and $endLastYm$
+     <include refid="paramSql"/>
+   and g.SUB_GRADE_ID in (select sub_grade_id from t6) 
+   group by g.sub_grade_id
+),
+<!--本期区间实际销量-->
+bqActrueRegionSales_attr as (
+  select b.fsort,b.accbqsales_attr,b.sub_grade_id,
+    b.bqRegionMix_attr * a.accbqsales_attr bqActrueSales_attr
+  from bqsubmodelmix_table b left join bqActrueTotalSales_attr a on b.sub_grade_id = a.sub_grade_id
+),
+tqActrueRegionSales_attr as (
+  select b.fsort,b.acctqsales_attr,b.sub_grade_id,
+    b.tqRegionMix_attr * a.acctqsales_attr tqActrueSales_attr
+  from tqsubmodelmix_table b left join tqActrueTotalSales_attr a on b.sub_grade_id = a.sub_grade_id
+),
+<!--将相同父细分市场区间销量相加,这里讲sub_grade_id 从第四级细分id改成了所选细分市场id-->
+bqGradeRegionActrueSales as
+ (select l.fsort, sum(l.bqActrueSales_attr) bqGradeRegionSales, t.p_sub_grade_id sub_grade_id
+    from bqActrueRegionSales_attr l left join t6 t
+      on l.sub_grade_id = t.sub_grade_id
+   group by l.fsort, t.p_sub_grade_id),
+tqGradeRegionActrueSales as
+ (select l.fsort, sum(l.tqActrueSales_attr) tqGradeRegionSales, t.p_sub_grade_id sub_grade_id
+    from tqActrueRegionSales_attr l left join t6 t
+     on l.sub_grade_id = t.sub_grade_id
+   group by l.fsort, t.p_sub_grade_id),
+<!--将所有细分市场区间销量相加（最后一列total区间销量）-->
+bqAllGradeRegionActrueSales as
+ (select fsort, sum(bqActrueSales_attr) bqAllGradeRegionSales
+    from bqActrueRegionSales_attr
+   group by fsort),
+tqAllGradeRegionActrueSales as
+ (select fsort, sum(tqActrueSales_attr) tqAllGradeRegionSales
+    from tqActrueRegionSales_attr
+   group by fsort),  
+allGradeRegionActrueSales as(
+  select case
+           when a.fsort is not null then
+            a.fsort
+           else
+            b.fsort
+         end fsort,
+         a.bqAllGradeRegionSales,
+         b.tqAllGradeRegionSales
+    from bqAllGradeRegionActrueSales a
+    left join tqAllGradeRegionActrueSales b
+      on a.fsort = b.fsort
+),   
+<!-- 各细分市场区间销量和所有细分市场总销量汇总 -->   
+gradeRegionActrueSales as
+ (select  case
+           when b.fsort is not null then
+            b.fsort
+           else
+            t.fsort
+         end fsort,
+         case
+           when b.sub_grade_id is not null then
+            b.sub_grade_id
+           else
+            t.sub_grade_id
+         end sub_grade_id, 
+         b.bqGradeRegionSales,
+         t.tqGradeRegionSales
+    from bqGradeRegionActrueSales b
+    full join tqGradeRegionActrueSales t
+      on b.fsort = t.fsort
+     and b.sub_grade_id = t.sub_grade_id
+     
+     ),
+left_attr_table as (
+  select l.*, s.bqGradeRegionSales, s.tqGradeRegionSales,
+  		a.bqAllGradeRegionSales,a.tqAllGradeRegionSales
+  from left_table2 l
+  left join gradeRegionActrueSales s
+    on l.fsort = s.fsort
+   and l.sub_grade_id = s.sub_grade_id
+  left join  allGradeRegionActrueSales a
+    on l.fsort = a.fsort 
+ order by l.fsort, l.sub_grade_id
+),     
+accbqactrueTotalSales_attr as
+ (select 
+         sum(<include refid="salesElement"/>)  accbqsales_attr,
+         o.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+  left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+   on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   and o.sub_grade_id in ($subGradeIds$)
+    <include refid="paramSql"/>
+   group by o.sub_grade_id
+  
+  ),
+acctqactrueTotalSales_attr as
+ (select 
+    sum(<include refid="salesElement"/>)  acctqsales_attr,
+    o.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+   left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+    on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+   and o.sub_grade_id in ($subGradeIds$)
+    <include refid="paramSql"/>
+   group by o.sub_grade_id
+  
+  )  ,
+accactrueTotalSales_attr as (
+      select a.accbqsales_attr,a.sub_grade_id,b.acctqsales_attr from accbqactrueTotalSales_attr a  left join acctqactrueTotalSales_attr b on a.sub_grade_id = b.sub_grade_id
+  ),
+
+accbqactrueAllSales_attr as
+ (select 
+         sum(<include refid="salesElement"/>)  accbqAllsales_attr
+    from <include refid="actrueSalesTables" /> t
+  left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+   on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   and o.sub_grade_id in (select sub_grade_id from t6)
+    <include refid="paramSql"/>
+  
+  ),
+acctqactrueAllSales_attr as
+ (select 
+    sum(<include refid="salesElement"/>)  acctqAllsales_attr
+    from <include refid="actrueSalesTables" /> t
+   left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+    on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+   and o.sub_grade_id in (select sub_grade_id from t6)
+    <include refid="paramSql"/>
+  ),
+accactrueAllSales_attr as (
+      select a.accbqAllsales_attr,b.acctqAllsales_attr from accbqactrueAllSales_attr a  left join acctqactrueAllSales_attr b on 1=1
+  ),   
+attr_table as(
+ select l.fsort, 
+ 		l.segment,
+ 		l.sort_num,
+ 		l.sub_grade_id,
+ 		l.sub_grade_name,
+ 		l.bqGradeRegionSales actrueBqSales_attr,<!-- 各细分市场区间销量,本期 -->
+ 		l.tqGradeRegionSales actrueTqSales_attr,<!-- 各细分市场区间销量,同期 -->
+ 		l.bqAllGradeRegionSales actrueBqAllSales_attr,<!-- 所有细分市场区间总销量,本期(最后一列) -->
+ 		l.tqAllGradeRegionSales actrueTqAllSales_attr,<!-- 所有细分市场区间总销量,同期 -->
+ 		case when a.accbqsales_attr is not null
+ 		  and a.accbqsales_attr != 0
+ 		  then l.bqGradeRegionSales / a.accbqsales_attr else null end accBqTotalMix_attr,<!-- 各细分市场区间mix,本期 -->
+ 		case when a.acctqsales_attr is not null
+ 		  and a.acctqsales_attr != 0
+ 		  then l.tqGradeRegionSales / a.acctqsales_attr else null end accTqTotalMix_attr,<!-- 各细分市场区间mix,同期 -->
+ 		case when b.accbqAllsales_attr is not null
+ 	      and b.accbqAllsales_attr != 0 
+ 	      then l.bqAllGradeRegionSales / b.accbqAllsales_attr  else null end  accBqAllMix_attr,<!-- 所有细分市场区间mix,本期 -->
+ 	    case when b.acctqAllsales_attr is not null
+ 	      and b.acctqAllsales_attr != 0 
+ 	      then l.tqAllGradeRegionSales / b.acctqAllsales_attr  else null end  accTqAllMix_attr,<!-- 所有细分市场区间mix,同期 -->
+ 	    case when l.tqGradeRegionSales is not null 
+ 	      and l.tqGradeRegionSales !=0 
+ 	      then   (l.bqGradeRegionSales - l.tqGradeRegionSales) / l.tqGradeRegionSales  else null end  yoy_attr,<!-- 各细分市场区间销量增速 -->
+ 	    case when l.tqAllGradeRegionSales is not null 
+ 	      and l.tqAllGradeRegionSales !=0 
+ 	      then   (l.bqAllGradeRegionSales - l.tqAllGradeRegionSales) / l.tqAllGradeRegionSales  else null end  yoyAll_attr,<!-- 所有细分市场区间销量增速（最后一列） -->
+ 	    <!-- l.bqGradeRegionSales / a.accbqsales_attr -   l.tqGradeRegionSales / a.acctqsales_attr mixChanges_attr,各细分市场区间mix变化
+ 	    l.bqAllGradeRegionSales / b.accbqAllsales_attr - l.tqAllGradeRegionSales / b.acctqAllsales_attr mixAllChanges_attr, 所有细分市场区间mix变化（最后一列） -->
+ 	    case
+           when a.acctqsales_attr is not null and a.acctqsales_attr != 0 then
+            (a.accbqsales_attr - a.acctqsales_attr) / a.acctqsales_attr
+           else
+            null
+         end totalyoy_attr,  <!-- 各细分市场总销量增速（最后一行） -->
+       case
+           when b.acctqAllsales_attr is not null and b.acctqAllsales_attr != 0 then
+            (b.accbqAllsales_attr - b.acctqAllsales_attr) / b.acctqAllsales_attr
+           else
+            null
+         end totalAllyoy_attr,  <!-- 所有细分市场总销量增速（最后一行，最后一列） -->
+         a.accbqsales_attr,
+         a.acctqsales_attr,
+         
+         b.accbqAllsales_attr,
+         b.acctqAllsales_attr
+ 	from left_attr_table l 
+ 	left join accactrueTotalSales_attr a
+ 	on l.sub_grade_id = a.sub_grade_id
+ 	left join accactrueAllSales_attr b
+ 	on 1=1
+ 	order by l.fsort,l.sub_grade_id
+),
+lastestData as (
+	select l.fsort,
+	       l.segment,
+	       l.accBqTotalMix,<!-- 本期总览区间mix -->
+	       l.accTqTotalMix,<!-- 同期总览区间mix -->
+	       l.actrueBqSales,<!-- 本期实际区间销量 -->
+	       l.actrueTqSales,<!-- 同期实际区间销量 -->
+	       l.accbqsales,<!-- 本期实际总销量 -->
+	       l.acctqsales,<!-- 同期实际总销量 -->
+	       l.yoy,<!-- 本期区间销量增速 -->
+	       l.totalyoy,<!-- 本期销量总增速 -->
+	       l.mixChanges,<!-- 本期区间mix变化（总变化一定为0，总mix一定为1） -->
+	       t.sub_grade_id attributeId,<!-- 系别id -->
+	       t.sub_grade_name attributeName,<!-- 系别名称 -->
+	       t.accBqTotalMix_attr mix_attr,<!-- 本期系别区间mix -->
+	       t.accTqTotalMix_attr,<!-- 同期系别区间mix -->
+	       t.actrueBqSales_attr sales_attr,<!-- 本期系别区间实际总销量（放大后） -->
+	       t.actrueTqSales_attr,<!-- 同期系别区间实际总销量（放大后） -->
+	       t.accbqsales_attr totalSales_attr,<!-- 本期系别总销量 -->
+	       t.acctqsales_attr,<!-- 同期系别总销量 -->
+	       t.yoy_attr salesChange_attr,<!-- 系别区间销量增速 -->
+	       t.totalyoy_attr totalSalesChange_attr,<!-- 系别总销量增速（最后一行的total） -->
+	       case when nvl(t.accBqTotalMix_attr,0) = 0 and nvl(t.accTqTotalMix_attr,0) = 0 then null
+         	else nvl(t.accBqTotalMix_attr,0) - nvl(t.accTqTotalMix_attr,0)
+         	end  mixChange_attr,<!-- 系别区间mix变化 -->
+	      <!--  t.mixChanges_attr mixChange_attr,系别区间mix变化 -->
+	       t.actrueBqSales_attr - t.actrueTqSales_attr salesChanges,<!-- 系别销量变化（没用到） -->
+	       case
+	         when l.actrueBqSales is not null and l.actrueBqSales != 0 then
+	          <!-- t.actrueBqSales_attr / l.actrueBqSales -->
+	          t.actrueBqSales_attr / t.actrueBqAllSales_attr
+	         else
+	          null
+	       end shares_attr,<!-- 系别区间份额 -->
+	       case
+	         when t.actrueBqAllSales_attr is not null and t.actrueBqAllSales_attr != 0 and
+	              t.actrueTqAllSales_attr is not null and t.actrueTqAllSales_attr != 0 then
+	          t.actrueBqSales_attr / t.actrueBqAllSales_attr -
+	          t.actrueTqSales_attr / t.actrueTqAllSales_attr
+	         when (t.actrueBqAllSales_attr is null or t.actrueBqAllSales_attr = 0) and
+	              t.actrueTqAllSales_attr is not null and t.actrueTqAllSales_attr != 0 then
+	          0 - t.actrueTqSales_attr / t.actrueTqAllSales_attr
+	         when (t.actrueBqAllSales_attr is not null and t.actrueBqAllSales_attr != 0) and
+	              (t.actrueTqAllSales_attr is null or t.actrueTqAllSales_attr = 0) then
+	          t.actrueBqSales_attr / t.actrueBqAllSales_attr
+	         else
+	          null
+	       end sharesChange_attr,<!-- 系别区间份额变化 -->
+	       
+	       t.accBqAllMix_attr allMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       t.accTqAllMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       t.actrueBqAllSales_attr allSales_attr,<!-- 本期系别区间total总销量（最后一列） -->
+	       t.actrueTqAllSales_attr,<!-- 同期系别区间total总销量 -->
+	       
+	       t.accbqAllsales_attr,<!-- 本期所有选择系别总销量（一定小于等于列表前面的累计销量） -->
+	       t.acctqAllsales_attr,<!-- 同期所有选择系别总销量 -->
+	       t.yoyAll_attr allSalesChange_attr,<!-- 所选系别总的区间销量增速 -->
+	       t.totalAllyoy_attr,<!-- 所选系别总的销量增速（最后一行的total） -->
+	       
+	       case when nvl(t.accBqAllMix_attr,0) =0 and nvl(t.accTqAllMix_attr,0)=0 then null
+           else  nvl(t.accBqAllMix_attr,0) - nvl(t.accTqAllMix_attr,0) end allMixchange_attr,<!-- 所选系别 区间totalmix变化（列表最后一列total）-->
+	       <!-- t.mixAllChanges_attr allMixchange_attr, -->
+	       t.actrueBqAllSales_attr - t.actrueTqAllSales_attr salesAllChanges,<!-- 所选系别总销量变化（没用到） -->
+	       case
+	         when l.actrueBqSales is not null and l.actrueBqSales != 0 then
+	          t.actrueBqAllSales_attr / t.actrueBqAllSales_attr
+	         else
+	          null
+	       end sharesAll,<!-- 所选系别区间总份额 （列表最后一列total）-->
+	       0 totalSharesChange_attr,<!-- 所选系别区间总份额变化（列表最后一列total） -->
+	       
+	       case when t.accbqAllsales_attr is not null and t.accbqAllsales_attr !=0 then 
+	       t.accbqsales_attr/t.accbqAllsales_attr
+	       else null end totalShares_attr,<!-- 系别总的份额 （列表最后一行total）-->
+	       case when t.accbqAllsales_attr is not null and t.accbqAllsales_attr !=0 
+	       	   and t.acctqAllsales_attr is not null and t.acctqAllsales_attr !=0 then 
+	       t.accbqsales_attr/t.accbqAllsales_attr  - t.acctqsales_attr/t.acctqAllsales_attr
+	        when (t.accbqAllsales_attr is not null and t.accbqAllsales_attr !=0 )
+	       	   and (t.acctqAllsales_attr is null or t.acctqAllsales_attr =0) then
+	       	   t.accbqsales_attr/t.accbqAllsales_attr
+	       	 when (t.accbqAllsales_attr is null or t.accbqAllsales_attr =0)
+	       	   and (t.acctqAllsales_attr is not null and t.acctqAllsales_attr !=0) then
+	       	   0 - t.acctqsales_attr/t.acctqAllsales_attr
+	        else null end totalSharesChanges<!-- 系别总份额变化（列表最后一行total） -->
+	  from total_table l
+	  left join attr_table t
+	    on l.fsort = t.fsort
+	   and l.sub_grade_id = t.sub_grade_id
+	 order by l.fsort, t.sort_num
+)        
+select fsort,
+	       segment,
+	       case
+	         when accBqTotalMix is not null then
+	          to_char(accBqTotalMix*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accBqTotalMix,<!-- 本期总览区间mix -->
+	       case
+	         when accTqTotalMix is not null then
+	          to_char(accTqTotalMix*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accTqTotalMix,<!-- 同期总览区间mix -->
+	       case
+	         when actrueBqSales is not null then
+	          to_char(actrueBqSales,'fm99999999990')
+	         else
+	          '-'
+	       end actrueBqSales,<!-- 本期实际区间销量 -->
+	       case
+	         when actrueTqSales is not null then
+	          to_char(actrueTqSales,'fm99999999990')
+	         else
+	          '-'
+	       end actrueTqSales,<!-- 同期实际区间销量 -->
+	       case
+	         when accbqsales is not null then
+	          to_char(accbqsales,'fm99999999990')
+	         else
+	          '-'
+	       end accbqsales,<!-- 本期实际总销量 -->
+	       case
+	         when acctqsales is not null then
+	          to_char(acctqsales,'fm99999999990')
+	         else
+	          '-'
+	       end acctqsales,<!-- 同期实际总销量 -->
+	       case
+	         when yoy is not null then
+	          to_char(yoy*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end yoy,<!-- 本期区间销量增速 -->
+	       case
+	         when totalyoy is not null then
+	          to_char(totalyoy*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalyoy,<!-- 本期销量总增速 -->
+	       case
+	         when mixChanges is not null then
+	          to_char(mixChanges*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end mixChanges,<!-- 本期区间mix变化（总变化一定为0，总mix一定为1） -->
+	       attributeId,<!-- 系别id -->
+	       attributeName,<!-- 系别名称 -->
+	       case
+	         when mix_attr is not null then
+	          to_char(mix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end mix_attr,<!-- 本期系别区间mix -->
+	       case
+	         when accTqTotalMix_attr is not null then
+	          to_char(accTqTotalMix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accTqTotalMix_attr,<!-- 同期系别区间mix -->
+	       case
+	         when sales_attr is not null then
+	          to_char(sales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end sales_attr,<!-- 本期系别区间实际总销量（放大后） -->
+	       case
+	         when actrueTqSales_attr is not null then
+	          to_char(actrueTqSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end actrueTqSales_attr,<!-- 同期系别区间实际总销量（放大后） -->
+	       case
+	         when totalSales_attr is not null then
+	          to_char(totalSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end totalSales_attr,<!-- 本期系别总销量 -->
+	       case
+	         when acctqsales_attr is not null then
+	          to_char(acctqsales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end acctqsales_attr,<!-- 同期系别总销量 -->
+	       case
+	         when salesChange_attr is not null then
+	          to_char(salesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end salesChange_attr,<!-- 系别区间销量增速 -->
+	       case
+	         when totalSalesChange_attr is not null then
+	          to_char(totalSalesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalSalesChange_attr,<!-- 系别总销量增速（最后一行的total） -->
+	       case
+	         when mixChange_attr is not null then
+	          to_char(mixChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end mixChange_attr,<!-- 系别区间mix变化 -->
+	       case
+	         when salesChanges is not null then
+	          to_char(salesChanges,'fm99999999990')
+	         else
+	          '-'
+	       end salesChanges,<!-- 系别销量变化（没用到） -->
+	       case
+	         when shares_attr is not null then
+	          to_char(shares_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end shares_attr,<!-- 系别区间份额 -->
+	       case
+	         when sharesChange_attr is not null then
+	          to_char(sharesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end sharesChange_attr,<!-- 系别区间份额变化 -->
+	       case
+	         when allMix_attr is not null then
+	          to_char(allMix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end allMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       case
+	         when accTqAllMix_attr is not null then
+	          to_char(accTqAllMix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accTqAllMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       case
+	         when allSales_attr is not null then
+	          to_char(allSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end allSales_attr,<!-- 本期系别区间total总销量（最后一列） -->
+	       case
+	         when actrueTqAllSales_attr is not null then
+	          to_char(actrueTqAllSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end actrueTqAllSales_attr,<!-- 同期系别区间total总销量 -->
+	       case
+	         when accbqAllsales_attr is not null then
+	          to_char(accbqAllsales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end accbqAllsales_attr,<!-- 本期所有选择系别总销量（一定小于等于列表前面的累计销量） -->
+	       case
+	         when acctqAllsales_attr is not null then
+	          to_char(acctqAllsales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end acctqAllsales_attr,<!-- 同期所有选择系别总销量 -->
+	       case
+	         when allSalesChange_attr is not null then
+	          to_char(allSalesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end allSalesChange_attr,<!-- 所选系别总的区间销量增速 -->
+	       case
+	         when totalAllyoy_attr is not null then
+	          to_char(totalAllyoy_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalAllyoy_attr,<!-- 所选系别总的销量增速（最后一行、最后一列的total） -->
+	       case
+	         when allMixchange_attr is not null then
+	          to_char(allMixchange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end allMixchange_attr,<!-- 所选系别 区间totalmix变化（列表最后一列total）-->
+	       case
+	         when salesAllChanges is not null then
+	          to_char(salesAllChanges,'fm99999999990')
+	         else
+	          '-'
+	       end salesAllChanges,<!-- 所选系别总销量变化（没用到） -->
+	       case
+	         when sharesAll is not null then
+	          to_char(sharesAll*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end sharesAll,<!-- 所选系别区间总份额 （列表最后一列total）-->
+	       case
+	         when totalSharesChange_attr is not null then
+	          to_char(totalSharesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalSharesChange_attr,<!-- 所选系别区间总份额变化（列表最后一列total） -->
+	       case
+	         when totalShares_attr is not null then
+	          to_char(totalShares_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalShares_attr,<!-- 系别总的份额 （列表最后一行total）-->
+	       case
+	         when totalSharesChanges is not null then
+	          to_char(totalSharesChanges*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalSharesChanges<!-- 系别总份额变化（列表最后一行total） -->
+	       from lastestData 
+</select>
+
+<!-- 月均总数据sql -->
+<sql id="accTotalSql_avg">
+t1 as
+ (select distinct  sub_grade_id ,connect_by_root p_sub_grade_id p_sub_grade_id
+  from dm_sub_grade_new 
+  where levelflag = 3
+  connect by prior sub_grade_id = p_sub_grade_id 
+  <isNotEmpty property="subGradeIds_all">
+	 start with p_sub_grade_id in ($subGradeIds_all$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds_all">
+	 start with p_sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+ 
+ order by sub_grade_id),
+t2 as
+ (select distinct sub_grade_id, sub_grade_name
+    from dm_sub_grade_new
+   where 
+   <isNotEmpty property="subGradeIds_all">
+	 sub_grade_id in ($subGradeIds_all$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds_all">
+	 sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+   ),
+t3 as (select t2.sub_grade_id p_sub_grade_id,
+       t2.sub_grade_name,
+       case
+         when t1.sub_grade_id is not null then
+          t1.sub_grade_id
+         else
+          t2.sub_grade_id
+       end sub_grade_id
+  from t2
+  left join t1
+    on t2.sub_grade_id = t1.p_sub_grade_id),
+left_table3 as
+ (select l.segment, l.fsort,t.sub_grade_id,t.sub_grade_name,t.p_sub_grade_id
+    from left_table l
+    left join t3 t
+      on  1=1
+   ),
+bqtotalsales as
+ (select sum(t.bq_sales) / $monthNum$ accBqTotalSales, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    <include refid="tableSql_all"/>
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+   where t.ym between $startYm$ and $endYm$
+   	<include refid="paramSql_all"/>
+   	and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id
+   ),
+tqtotalsales as
+ (select sum(t.bq_sales) / $monthNum$ accTqTotalSales, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>
+   where 
+   t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql_all"/>
+   and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id
+  ),
+totalSales as
+ (select b.accBqTotalSales, t.accTqTotalSales
+ 		,case
+           when b.sub_grade_id is not null then
+            b.sub_grade_id
+           else
+            t.sub_grade_id
+         end sub_grade_id
+    from bqtotalsales b
+    full join tqtotalsales t
+      on b.sub_grade_id = t.sub_grade_id),
+accbqRegionSaledata as
+ (select 
+ 	$priceSegmentSql$
+	 fsort,
+     sum(t.bq_sales) / $monthNum$ accRegionBqSales
+     , g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    <include refid="tableSql_all"/>
+    left join dm_version v
+      on t.version_id = v.version_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id  
+   where t.ym between $startYm$ and $endYm$
+   <include refid="paramSql_all"/>
+     <!-- and t.bq_sales is not null -->
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by 
+	$priceSegmentSql$
+	,g.sub_grade_id
+   order by fsort),
+bqRegionMixdata as
+ (select a.fsort,
+         a.accRegionBqSales,
+         a.sub_grade_id,
+         case
+           when b.accBqTotalSales is not null and b.accBqTotalSales !=0 then
+            a.accRegionBqSales / b.accBqTotalSales
+           else
+            null
+         end accBqTotalMix
+    from accbqRegionSaledata a
+    left join totalSales b
+      on a.sub_grade_id = b.sub_grade_id),   
+acctqRegionSaledata as
+ (select 
+ 	$priceSegmentSql$
+  	fsort,
+    sum(t.bq_sales) / $monthNum$ accRegionTqSales
+    , g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    <include refid="tableSql_all"/>
+    left join dm_version v
+      on t.version_id = v.version_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id    
+   where t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql_all"/>
+     <!-- and t.bq_sales is not null -->
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by 
+   $priceSegmentSql$
+   ,g.sub_grade_id
+   order by fsort),
+tqRegionMixdata as
+ (select a.fsort,
+         a.accRegionTqSales,
+         a.sub_grade_id,
+         case
+           when b.accTqTotalSales is not null and b.accTqTotalSales !=0 then
+            a.accRegionTqSales / b.accTqTotalSales
+           else
+            null
+         end accTqTotalMix
+    from acctqRegionSaledata a
+    left join totalSales b
+      on a.sub_grade_id = b.sub_grade_id),
+regionMixdata as
+ (select  case when  a.fsort is null then
+           b.fsort else a.fsort end fsort,
+         a.accRegionBqSales,
+         case
+           when a.sub_grade_id is null then
+            b.sub_grade_id
+           else
+            a.sub_grade_id
+         end sub_grade_id,
+         a.accBqTotalMix,
+         b.accRegionTqSales,
+         b.accTqTotalMix
+    from bqRegionMixdata a
+    full join tqRegionMixdata b
+      on a.fsort = b.fsort
+     and a.sub_grade_id = b.sub_grade_id),
+left_grade_table as
+ (select l.fsort,
+         l.segment,
+         l.p_sub_grade_id,
+         l.sub_grade_name,
+         b.accBqTotalMix,
+         b.accTqTotalMix
+         ,b.sub_grade_id
+    from left_table3 l
+    left join regionMixdata b
+      on l.fsort = b.fsort
+      and l.sub_grade_id = b.sub_grade_id
+   order by l.fsort),
+accbqactrueGradeSales as
+ (select sum(<include refid="salesElement"/>) / $monthNum$ accbqsales, g.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>  
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   <include refid="paramSql_all"/>
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id),
+acctqactrueGradeSales as
+ (select sum(<include refid="salesElement"/>) / $monthNum$ acctqsales, g.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>  
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+   <include refid="paramSql_all"/>
+     and g.sub_grade_id in (select sub_grade_id from t3)
+   group by g.sub_grade_id),
+accactrueGradeSales as
+ (select a.accbqsales,
+         b.acctqsales,
+         case
+           when a.sub_grade_id is not null then
+            a.sub_grade_id
+           else
+            b.sub_grade_id
+         end sub_grade_id
+    from accbqactrueGradeSales a
+    full join acctqactrueGradeSales b
+      on a.sub_grade_id = b.sub_grade_id),     
+actrueRegionSales as
+ (select l.fsort,
+         l.segment,
+         l.sub_grade_name,
+         l.accBqTotalMix * t.accbqsales actrueBqSales,
+         l.accTqTotalMix * t.acctqsales actrueTqSales,
+	     l.p_sub_grade_id sub_grade_id
+    from left_grade_table l
+    left join accactrueGradeSales t
+      on l.sub_grade_id = t.sub_grade_id),
+left_actrue_sales as
+ (select l.fsort,
+         l.segment,
+         sum(l.actrueBqSales) actrueBqSales,
+         sum(l.actrueTqSales) actrueTqSales
+    from actrueRegionSales l
+   group by  l.fsort, l.segment
+   ),                        
+accbqactrueTotalSales as
+ (select sum(<include refid="salesElement"/>) / $monthNum$  accbqsales
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+    <include refid="tableSql_all"/>
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   <include refid="paramSql_all"/>
+  and g.sub_grade_id in (select sub_grade_id from t3)
+  ),
+acctqactrueTotalSales as
+ (	select 
+    sum(<include refid="salesElement"/>) / $monthNum$  acctqsales
+    from <include refid="actrueSalesTables" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+     <include refid="tableSql_all"/>
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+    <include refid="paramSql_all"/>
+  and g.sub_grade_id in (select sub_grade_id from t3)
+  ),
+accactrueTotalSales as (
+      select * from accbqactrueTotalSales a  left join acctqactrueTotalSales b on 1=1
+  ),
+total_table_1 as(
+   select l.fsort,
+         l.segment,
+         l.actrueBqSales,
+         l.actrueTqSales,
+         case
+           when b.accbqsales is not null then
+            l.actrueBqSales / b.accbqsales
+           else
+            null
+         end accBqTotalMix,
+         case
+           when b.acctqsales is not null then
+            l.actrueTqSales / b.acctqsales
+           else
+            null
+         end accTqTotalMix,
+         b.accbqsales,
+         b.acctqsales,
+         case
+           when l.actrueTqSales is not null then
+            (l.actrueBqSales - l.actrueTqSales) / l.actrueTqSales
+           else
+            null
+         end yoy,
+         case
+           when b.acctqsales is not null then
+            (b.accbqsales - b.acctqsales) / b.acctqsales
+           else
+            null
+         end totalyoy,
+         
+          case when nvl(l.actrueBqSales / b.accbqsales,0)=0 and nvl(l.actrueTqSales / b.acctqsales,0)!=0
+            then 0 - l.actrueTqSales / b.acctqsales 
+         when  nvl(l.actrueBqSales / b.accbqsales,0)!=0 and nvl(l.actrueTqSales / b.acctqsales,0)=0
+            then l.actrueBqSales / b.accbqsales
+         when  nvl(l.actrueBqSales / b.accbqsales,0)!=0 and nvl(l.actrueTqSales / b.acctqsales,0)!=0
+            then l.actrueBqSales / b.accbqsales - l.actrueTqSales / b.acctqsales 
+           else null end  mixChanges
+         
+         <!-- case when b.accbqsales is not null and b.accbqsales !=0
+         	and b.acctqsales is not null and b.acctqsales !=0 then 
+         l.actrueBqSales / b.accbqsales - l.actrueTqSales / b.acctqsales 
+         	when (b.accbqsales is not null and b.accbqsales !=0)
+         		and (b.acctqsales is null or b.acctqsales =0) then 
+         		l.actrueBqSales / b.accbqsales
+         	when (b.accbqsales is null or b.accbqsales =0)
+         	and (b.acctqsales is not null and b.acctqsales !=0) then
+         		0 - l.actrueTqSales / b.acctqsales 
+         else null end mixChanges -->
+         
+    from left_actrue_sales l
+    left join accactrueTotalSales b
+      on 1 = 1
+   order by l.fsort
+),
+total_table as (
+  select distinct a.*,
+         b.sub_grade_id,
+         b.sub_grade_name
+         from 
+           total_table_1 a
+           left join  dm_sub_grade_new b
+           on 1=1
+            where b.sub_grade_id in ($subGradeIds$)
+),  
+</sql>
+
+<!-- 月均细分市场 -->
+<select id="getGradeAvgData" parameterClass="java.util.HashMap" resultMap="overview">
+with left_table as
+	(
+		$leftSegmentSql$
+	),
+left_table2 as (
+	select distinct l.segment,l.fsort,o.sub_grade_id,o.sub_grade_name
+	,case when o.sub_grade_id = -2 then -4
+  	  when o.sub_grade_id = -4 then -3
+  	  when o.sub_grade_id = -3 then -2
+  	  when o.sub_grade_id = -5 then -1
+  	  else vg.sn end sort_num
+  	 <!-- ,vg.sn sort_num -->
+  from left_table l left join (select distinct sub_grade_id ,sub_grade_name from dm_sub_grade_new) o
+  on 1=1
+  left join v_sub_grade vg
+    on o.sub_grade_id = vg.SUB_GRADE_ID
+  where o.sub_grade_id in ($subGradeIds$)
+  <!-- select distinct l.segment,l.fsort,o.sub_grade_id,o.sub_grade_name
+     ,row_number() over(partition by l.fsort order by instr(#subGradeIds#, o.sub_grade_id)) sort_num
+  from left_table l left join (select distinct sub_grade_id ,sub_grade_name from dm_sub_grade_new) o
+  on 1=1
+  where o.sub_grade_id in ($subGradeIds$) -->
+),
+<include refid="accTotalSql_avg"/>
+
+<!-- tab页细分市场条件，以此获取第四级id -->
+t4 as
+ (select distinct  sub_grade_id ,connect_by_root p_sub_grade_id p_sub_grade_id
+  from dm_sub_grade_new 
+  where levelflag = 3
+  connect by prior sub_grade_id = p_sub_grade_id 
+  <isNotEmpty property="subGradeIds">
+	 start with p_sub_grade_id in ($subGradeIds$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds">
+	 start with p_sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+ 
+ order by sub_grade_id),
+t5 as
+ (select distinct sub_grade_id, sub_grade_name
+    from dm_sub_grade_new
+   where 
+   <isNotEmpty property="subGradeIds">
+	 sub_grade_id in ($subGradeIds$)
+  </isNotEmpty>
+  <isEmpty property="subGradeIds">
+	 sub_grade_id in (
+	 	select distinct sub_grade_id from dm_sub_grade_new where levelflag = 0
+	 )
+  </isEmpty>
+   ),
+t6 as (select t5.sub_grade_id p_sub_grade_id,
+       t5.sub_grade_name,
+       case
+         when t4.sub_grade_id is not null then
+          t4.sub_grade_id
+         else
+          t5.sub_grade_id
+       end sub_grade_id
+  from t5
+  left join t4
+    on t5.sub_grade_id = t4.p_sub_grade_id),
+<!-- 各子车型总销量 -->     
+<!--本期 -->     
+bqTotalSales_attr as
+ (select sum(t.bq_sales) / $monthNum$ accBqTotalSales_attr, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.SUB_MODEL_ID
+      <include refid="tableSql"/>
+   where t.ym between $startYm$ and $endYm$
+      <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+   group by g.sub_grade_id),
+<!--同期 -->
+tqTotalSales_attr as
+ (select sum(t.bq_sales) / $monthNum$ accTqTotalSales_attr, g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+     left join dm_sub_model m
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.SUB_MODEL_ID
+      <include refid="tableSql"/>
+   where t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+   group by g.sub_grade_id),
+totalSales_attr as
+ (select b.accBqTotalSales_attr, 
+     case when b.sub_grade_id is not null then b.sub_grade_id else t.sub_grade_id end sub_grade_id ,
+     t.accTqTotalSales_attr
+    from bqTotalSales_attr b
+    full join tqTotalSales_attr t
+      on b.sub_grade_id = t.sub_grade_id),
+      
+<!--细分市场区间销量 ，本期-->
+bqRegionSales_attr as
+ (select  $priceSegmentSql$
+ 		fsort,
+         sum(t.bq_sales) / $monthNum$ accBqSales_attr,
+         g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+      <include refid="tableSql"/>
+   where t.ym between $startYm$ and $endYm$
+   <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+     and t.bq_sales is not null
+   group by $priceSegmentSql$,
+            g.sub_grade_id
+   order by fsort),
+<!--同期 -->
+tqRegionSales_attr as
+ (select $priceSegmentSql$ fsort,
+         sum(t.bq_sales) / $monthNum$ accTqSales_attr,
+         g.sub_grade_id
+    from <include refid="mixTableSql" /> t
+    left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new g
+      on t.sub_model_id = g.sub_model_id
+      <include refid="tableSql"/>
+   where t.ym between $startLastYm$ and $endLastYm$
+   <include refid="paramSql"/>
+     and g.sub_grade_id in (select sub_grade_id from t6)
+     and t.bq_sales is not null
+   group by $priceSegmentSql$,
+            g.sub_grade_id
+   order by fsort),
+
+bqsubmodelmix_table as (
+  select r.fsort,r.accbqsales_attr,r.sub_grade_id,
+     case when t.accBqTotalSales_attr is not null and t.accBqTotalSales_attr !=0 then
+       r.accBqSales_attr / t.accBqTotalSales_attr 
+        else null
+          end bqRegionMix_attr
+   from bqRegionSales_attr r left join totalSales_attr t 
+   on  r.sub_grade_id = t.sub_grade_id
+),
+tqsubmodelmix_table as (
+  select r.fsort,r.acctqsales_attr,r.sub_grade_id,
+     case when t.accTqTotalSales_attr is not null and t.accTqTotalSales_attr !=0 then
+       r.accTqSales_attr / t.accTqTotalSales_attr 
+        else null
+          end tqRegionMix_attr
+   from tqRegionSales_attr r left join totalSales_attr t 
+   on  r.sub_grade_id = t.sub_grade_id
+),
+<!-- 细分市场实际总销量 -->
+bqActrueTotalSales_attr as (
+ select  sum(<include refid="salesElement"/>) / $monthNum$ accbqsales_attr,g.sub_grade_id
+      from <include refid="actrueSalesTables" /> t
+      left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+     left join dm_sub_grade_new g
+         on t.sub_model_id = g.SUB_MODEL_ID
+        <include refid="tableSql"/> 
+     where 
+     t.year || lpad(t.month_id,2,0)  between $startYm$ and $endYm$
+     <include refid="paramSql"/>
+   and g.SUB_GRADE_ID in (select sub_grade_id from t6) 
+   group by g.sub_grade_id 
+),
+tqActrueTotalSales_attr as (
+ select  sum(<include refid="salesElement"/>) / $monthNum$ acctqsales_attr,g.sub_grade_id
+      from <include refid="actrueSalesTables" /> t
+      left join DM_SUB_MODEL m
+      on t.sub_model_id = m.sub_model_id
+     left join dm_sub_grade_new g
+         on t.sub_model_id = g.SUB_MODEL_ID
+         <include refid="tableSql"/> 
+     where 
+     t.year || lpad(t.month_id,2,0)  between $startLastYm$ and $endLastYm$
+     <include refid="paramSql"/>
+   and g.SUB_GRADE_ID in (select sub_grade_id from t6) 
+   group by g.sub_grade_id
+),
+<!--本期区间实际销量-->
+bqActrueRegionSales_attr as (
+  select b.fsort,b.accbqsales_attr,b.sub_grade_id,
+    b.bqRegionMix_attr * a.accbqsales_attr bqActrueSales_attr
+  from bqsubmodelmix_table b left join bqActrueTotalSales_attr a on b.sub_grade_id = a.sub_grade_id
+),
+tqActrueRegionSales_attr as (
+  select b.fsort,b.acctqsales_attr,b.sub_grade_id,
+    b.tqRegionMix_attr * a.acctqsales_attr tqActrueSales_attr
+  from tqsubmodelmix_table b left join tqActrueTotalSales_attr a on b.sub_grade_id = a.sub_grade_id
+),
+<!--将相同父细分市场区间销量相加,这里讲sub_grade_id 从第四级细分id改成了所选细分市场id-->
+bqGradeRegionActrueSales as
+ (select l.fsort, sum(l.bqActrueSales_attr) bqGradeRegionSales, t.p_sub_grade_id sub_grade_id
+    from bqActrueRegionSales_attr l left join t6 t
+      on l.sub_grade_id = t.sub_grade_id
+   group by l.fsort, t.p_sub_grade_id),
+tqGradeRegionActrueSales as
+ (select l.fsort, sum(l.tqActrueSales_attr) tqGradeRegionSales, t.p_sub_grade_id sub_grade_id
+    from tqActrueRegionSales_attr l left join t6 t
+     on l.sub_grade_id = t.sub_grade_id
+   group by l.fsort, t.p_sub_grade_id),
+<!--将所有细分市场区间销量相加（最后一列total区间销量）-->
+bqAllGradeRegionActrueSales as
+ (select fsort, sum(bqActrueSales_attr) bqAllGradeRegionSales
+    from bqActrueRegionSales_attr
+   group by fsort),
+tqAllGradeRegionActrueSales as
+ (select fsort, sum(tqActrueSales_attr) tqAllGradeRegionSales
+    from tqActrueRegionSales_attr
+   group by fsort),  
+allGradeRegionActrueSales as(
+  select case
+           when a.fsort is not null then
+            a.fsort
+           else
+            b.fsort
+         end fsort,
+         a.bqAllGradeRegionSales,
+         b.tqAllGradeRegionSales
+    from bqAllGradeRegionActrueSales a
+    left join tqAllGradeRegionActrueSales b
+      on a.fsort = b.fsort
+),  
+<!-- 各细分市场区间销量和所有细分市场总销量汇总 -->   
+gradeRegionActrueSales as
+ (select  case
+           when b.fsort is not null then
+            b.fsort
+           else
+            t.fsort
+         end fsort,
+         case
+           when b.sub_grade_id is not null then
+            b.sub_grade_id
+           else
+            t.sub_grade_id
+         end sub_grade_id, 
+         b.bqGradeRegionSales,
+         t.tqGradeRegionSales
+    from bqGradeRegionActrueSales b
+    full join tqGradeRegionActrueSales t
+      on b.fsort = t.fsort
+     and b.sub_grade_id = t.sub_grade_id
+     
+     ),
+left_attr_table as (
+  select l.*, s.bqGradeRegionSales, s.tqGradeRegionSales,
+  		a.bqAllGradeRegionSales,a.tqAllGradeRegionSales
+  from left_table2 l
+  left join gradeRegionActrueSales s
+    on l.fsort = s.fsort
+   and l.sub_grade_id = s.sub_grade_id
+  left join  allGradeRegionActrueSales a
+    on l.fsort = a.fsort 
+ order by l.fsort, l.sub_grade_id
+),     
+accbqactrueTotalSales_attr as
+ (select 
+         sum(<include refid="salesElement"/>) / $monthNum$  accbqsales_attr,
+         o.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+  left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+   on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   and o.sub_grade_id in ($subGradeIds$)
+    <include refid="paramSql"/>
+   group by o.sub_grade_id
+  
+  ),
+acctqactrueTotalSales_attr as
+ (select 
+    sum(<include refid="salesElement"/>) / $monthNum$  acctqsales_attr,
+    o.sub_grade_id
+    from <include refid="actrueSalesTables" /> t
+   left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+    on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+   and o.sub_grade_id in ($subGradeIds$)
+    <include refid="paramSql"/>
+   group by o.sub_grade_id
+  
+  )  ,
+accactrueTotalSales_attr as (
+      select a.accbqsales_attr,a.sub_grade_id,b.acctqsales_attr from accbqactrueTotalSales_attr a  left join acctqactrueTotalSales_attr b on a.sub_grade_id = b.sub_grade_id
+  ),
+
+accbqactrueAllSales_attr as
+ (select 
+         sum(<include refid="salesElement"/>) / $monthNum$  accbqAllsales_attr
+    from <include refid="actrueSalesTables" /> t
+  left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+   on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where t.year || lpad(t.month_id, 2, 0) between $startYm$ and $endYm$
+   and o.sub_grade_id in (select sub_grade_id from t6)
+    <include refid="paramSql"/>
+  
+  ),
+acctqactrueAllSales_attr as
+ (select 
+    sum(<include refid="salesElement"/>) / $monthNum$  acctqAllsales_attr
+    from <include refid="actrueSalesTables" /> t
+   left join dm_sub_model m 
+    on t.sub_model_id = m.sub_model_id
+    left join dm_sub_grade_new o 
+    on t.sub_model_id = o.sub_model_id
+    <include refid="tableSql"/>
+   where (t.year || lpad(t.month_id, 2, 0) between $startLastYm$ and $endLastYm$)
+   and o.sub_grade_id in (select sub_grade_id from t6)
+    <include refid="paramSql"/>
+  ),
+accactrueAllSales_attr as (
+      select a.accbqAllsales_attr,b.acctqAllsales_attr from accbqactrueAllSales_attr a  left join acctqactrueAllSales_attr b on 1=1
+  ),   
+attr_table as(
+ select l.fsort, 
+ 		l.segment,
+ 		l.sort_num,
+ 		l.sub_grade_id,
+ 		l.sub_grade_name,
+ 		l.bqGradeRegionSales actrueBqSales_attr,<!-- 各细分市场区间销量,本期 -->
+ 		l.tqGradeRegionSales actrueTqSales_attr,<!-- 各细分市场区间销量,同期 -->
+ 		l.bqAllGradeRegionSales actrueBqAllSales_attr,<!-- 所有细分市场区间总销量,本期(最后一列) -->
+ 		l.tqAllGradeRegionSales actrueTqAllSales_attr,<!-- 所有细分市场区间总销量,同期 -->
+ 		case when a.accbqsales_attr is not null
+ 		  and a.accbqsales_attr != 0
+ 		  then l.bqGradeRegionSales / a.accbqsales_attr else null end accBqTotalMix_attr,<!-- 各细分市场区间mix,本期 -->
+ 		case when a.acctqsales_attr is not null
+ 		  and a.acctqsales_attr != 0
+ 		  then l.tqGradeRegionSales / a.acctqsales_attr else null end accTqTotalMix_attr,<!-- 各细分市场区间mix,同期 -->
+ 		case when b.accbqAllsales_attr is not null
+ 	      and b.accbqAllsales_attr != 0 
+ 	      then l.bqAllGradeRegionSales / b.accbqAllsales_attr  else null end  accBqAllMix_attr,<!-- 所有细分市场区间mix,本期 -->
+ 	    case when b.acctqAllsales_attr is not null
+ 	      and b.acctqAllsales_attr != 0 
+ 	      then l.tqAllGradeRegionSales / b.acctqAllsales_attr  else null end  accTqAllMix_attr,<!-- 所有细分市场区间mix,同期 -->
+ 	    case when l.tqGradeRegionSales is not null 
+ 	      and l.tqGradeRegionSales !=0 
+ 	      then   (l.bqGradeRegionSales - l.tqGradeRegionSales) / l.tqGradeRegionSales  else null end  yoy_attr,<!-- 各细分市场区间销量增速 -->
+ 	    case when l.tqAllGradeRegionSales is not null 
+ 	      and l.tqAllGradeRegionSales !=0 
+ 	      then   (l.bqAllGradeRegionSales - l.tqAllGradeRegionSales) / l.tqAllGradeRegionSales  else null end  yoyAll_attr,<!-- 所有细分市场区间销量增速（最后一列） -->  
+ 	    <!-- l.bqGradeRegionSales / a.accbqsales_attr -   l.tqGradeRegionSales / a.acctqsales_attr mixChanges_attr,各细分市场区间mix变化
+ 	    l.bqAllGradeRegionSales / b.accbqAllsales_attr - l.tqAllGradeRegionSales / b.acctqAllsales_attr mixAllChanges_attr, 所有细分市场区间mix变化（最后一列） -->
+ 	    case
+           when a.acctqsales_attr is not null and a.acctqsales_attr != 0 then
+            (a.accbqsales_attr - a.acctqsales_attr) / a.acctqsales_attr
+           else
+            null
+         end totalyoy_attr,  <!-- 各细分市场总销量增速（最后一行） -->
+       case
+           when b.acctqAllsales_attr is not null and b.acctqAllsales_attr != 0 then
+            (b.accbqAllsales_attr - b.acctqAllsales_attr) / b.acctqAllsales_attr
+           else
+            null
+         end totalAllyoy_attr,  <!-- 所有细分市场总销量增速（最后一行，最后一列） -->
+         a.accbqsales_attr,
+         a.acctqsales_attr,
+         
+         b.accbqAllsales_attr,
+         b.acctqAllsales_attr
+ 	from left_attr_table l 
+ 	left join accactrueTotalSales_attr a
+ 	on l.sub_grade_id = a.sub_grade_id
+ 	left join accactrueAllSales_attr b
+ 	on 1=1
+ 	order by l.fsort,l.sub_grade_id
+),
+lastestData as (
+	select l.fsort,
+	       l.segment,
+	       l.accBqTotalMix,<!-- 本期总览区间mix -->
+	       l.accTqTotalMix,<!-- 同期总览区间mix -->
+	       l.actrueBqSales,<!-- 本期实际区间销量 -->
+	       l.actrueTqSales,<!-- 同期实际区间销量 -->
+	       l.accbqsales,<!-- 本期实际总销量 -->
+	       l.acctqsales,<!-- 同期实际总销量 -->
+	       l.yoy,<!-- 本期区间销量增速 -->
+	       l.totalyoy,<!-- 本期销量总增速 -->
+	       l.mixChanges,<!-- 本期区间mix变化（总变化一定为0，总mix一定为1） -->
+	       t.sub_grade_id attributeId,<!-- 系别id -->
+	       t.sub_grade_name attributeName,<!-- 系别名称 -->
+	       t.accBqTotalMix_attr mix_attr,<!-- 本期系别区间mix -->
+	       t.accTqTotalMix_attr,<!-- 同期系别区间mix -->
+	       t.actrueBqSales_attr sales_attr,<!-- 本期系别区间实际总销量（放大后） -->
+	       t.actrueTqSales_attr,<!-- 同期系别区间实际总销量（放大后） -->
+	       t.accbqsales_attr totalSales_attr,<!-- 本期系别总销量 -->
+	       t.acctqsales_attr,<!-- 同期系别总销量 -->
+	       t.yoy_attr salesChange_attr,<!-- 系别区间销量增速 -->
+	       t.totalyoy_attr totalSalesChange_attr,<!-- 系别总销量增速（最后一行的total） -->
+	       case when nvl(t.accBqTotalMix_attr,0) = 0 and nvl(t.accTqTotalMix_attr,0) = 0 then null
+         	else nvl(t.accBqTotalMix_attr,0) - nvl(t.accTqTotalMix_attr,0)
+         	end  mixChange_attr,<!-- 系别区间mix变化 -->
+	       <!-- t.mixChanges_attr mixChange_attr,系别区间mix变化 -->
+	       t.actrueBqSales_attr - t.actrueTqSales_attr salesChanges,<!-- 系别销量变化（没用到） -->
+	       case
+	         when l.actrueBqSales is not null and l.actrueBqSales != 0 then
+	          <!-- t.actrueBqSales_attr / l.actrueBqSales -->
+	          t.actrueBqSales_attr / t.actrueBqAllSales_attr
+	         else
+	          null
+	       end shares_attr,<!-- 系别区间份额 -->
+	       case
+	         when t.actrueBqAllSales_attr is not null and t.actrueBqAllSales_attr != 0 and
+	              t.actrueTqAllSales_attr is not null and t.actrueTqAllSales_attr != 0 then
+	          t.actrueBqSales_attr / t.actrueBqAllSales_attr -
+	          t.actrueTqSales_attr / t.actrueTqAllSales_attr
+	         when (t.actrueBqAllSales_attr is null or t.actrueBqAllSales_attr = 0) and
+	              t.actrueTqAllSales_attr is not null and t.actrueTqAllSales_attr != 0 then
+	          0 - t.actrueTqSales_attr / t.actrueTqAllSales_attr
+	         when (t.actrueBqAllSales_attr is not null and t.actrueBqAllSales_attr != 0) and
+	              (t.actrueTqAllSales_attr is null or t.actrueTqAllSales_attr = 0) then
+	          t.actrueBqSales_attr / t.actrueBqAllSales_attr
+	         else
+	          null
+	       end sharesChange_attr,<!-- 系别区间份额变化 -->
+	       
+	       t.accBqAllMix_attr allMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       t.accTqAllMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       t.actrueBqAllSales_attr allSales_attr,<!-- 本期系别区间total总销量（最后一列） -->
+	       t.actrueTqAllSales_attr,<!-- 同期系别区间total总销量 -->
+	       
+	       t.accbqAllsales_attr,<!-- 本期所有选择系别总销量（一定小于等于列表前面的累计销量） -->
+	       t.acctqAllsales_attr,<!-- 同期所有选择系别总销量 -->
+	       t.yoyAll_attr allSalesChange_attr,<!-- 所选系别总的区间销量增速 -->
+	       t.totalAllyoy_attr,<!-- 所选系别总的销量增速（最后一行的total） -->
+	       case when nvl(t.accBqAllMix_attr,0) =0 and nvl(t.accTqAllMix_attr,0)=0 then null
+           else  nvl(t.accBqAllMix_attr,0) - nvl(t.accTqAllMix_attr,0) end allMixchange_attr,<!-- 所选系别 区间totalmix变化（列表最后一列total）-->
+	       <!-- t.mixAllChanges_attr allMixchange_attr, -->
+	       t.actrueBqAllSales_attr - t.actrueTqAllSales_attr salesAllChanges,<!-- 所选系别总销量变化（没用到） -->
+	       case
+	         when l.actrueBqSales is not null and l.actrueBqSales != 0 then
+	          t.actrueBqAllSales_attr / t.actrueBqAllSales_attr
+	         else
+	          null
+	       end sharesAll,<!-- 所选系别区间总份额 （列表最后一列total）-->
+	       0 totalSharesChange_attr,<!-- 所选系别区间总份额变化（列表最后一列total） -->
+	       
+	       case when t.accbqAllsales_attr is not null and t.accbqAllsales_attr !=0 then 
+	       t.accbqsales_attr/t.accbqAllsales_attr
+	       else null end totalShares_attr,<!-- 系别总的份额 （列表最后一行total）-->
+	       case when t.accbqAllsales_attr is not null and t.accbqAllsales_attr !=0 
+	       	   and t.acctqAllsales_attr is not null and t.acctqAllsales_attr !=0 then 
+	       t.accbqsales_attr/t.accbqAllsales_attr  - t.acctqsales_attr/t.acctqAllsales_attr
+	        when (t.accbqAllsales_attr is not null and t.accbqAllsales_attr !=0 )
+	       	   and (t.acctqAllsales_attr is null or t.acctqAllsales_attr =0) then
+	       	   t.accbqsales_attr/t.accbqAllsales_attr
+	       	 when (t.accbqAllsales_attr is null or t.accbqAllsales_attr =0)
+	       	   and (t.acctqAllsales_attr is not null and t.acctqAllsales_attr !=0) then
+	       	   0 - t.acctqsales_attr/t.acctqAllsales_attr
+	        else null end totalSharesChanges<!-- 系别总份额变化（列表最后一行total） -->
+	  from total_table l
+	  left join attr_table t
+	    on l.fsort = t.fsort
+	   and l.sub_grade_id = t.sub_grade_id
+	 order by l.fsort, t.sort_num
+)        
+select fsort,
+	       segment,
+	       case
+	         when accBqTotalMix is not null then
+	          to_char(accBqTotalMix*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accBqTotalMix,<!-- 本期总览区间mix -->
+	       case
+	         when accTqTotalMix is not null then
+	          to_char(accTqTotalMix*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accTqTotalMix,<!-- 同期总览区间mix -->
+	       case
+	         when actrueBqSales is not null then
+	          to_char(actrueBqSales,'fm99999999990')
+	         else
+	          '-'
+	       end actrueBqSales,<!-- 本期实际区间销量 -->
+	       case
+	         when actrueTqSales is not null then
+	          to_char(actrueTqSales,'fm99999999990')
+	         else
+	          '-'
+	       end actrueTqSales,<!-- 同期实际区间销量 -->
+	       case
+	         when accbqsales is not null then
+	          to_char(accbqsales,'fm99999999990')
+	         else
+	          '-'
+	       end accbqsales,<!-- 本期实际总销量 -->
+	       case
+	         when acctqsales is not null then
+	          to_char(acctqsales,'fm99999999990')
+	         else
+	          '-'
+	       end acctqsales,<!-- 同期实际总销量 -->
+	       case
+	         when yoy is not null then
+	          to_char(yoy*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end yoy,<!-- 本期区间销量增速 -->
+	       case
+	         when totalyoy is not null then
+	          to_char(totalyoy*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalyoy,<!-- 本期销量总增速 -->
+	       case
+	         when mixChanges is not null then
+	          to_char(mixChanges*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end mixChanges,<!-- 本期区间mix变化（总变化一定为0，总mix一定为1） -->
+	       attributeId,<!-- 系别id -->
+	       attributeName,<!-- 系别名称 -->
+	       case
+	         when mix_attr is not null then
+	          to_char(mix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end mix_attr,<!-- 本期系别区间mix -->
+	       case
+	         when accTqTotalMix_attr is not null then
+	          to_char(accTqTotalMix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accTqTotalMix_attr,<!-- 同期系别区间mix -->
+	       case
+	         when sales_attr is not null then
+	          to_char(sales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end sales_attr,<!-- 本期系别区间实际总销量（放大后） -->
+	       case
+	         when actrueTqSales_attr is not null then
+	          to_char(actrueTqSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end actrueTqSales_attr,<!-- 同期系别区间实际总销量（放大后） -->
+	       case
+	         when totalSales_attr is not null then
+	          to_char(totalSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end totalSales_attr,<!-- 本期系别总销量 -->
+	       case
+	         when acctqsales_attr is not null then
+	          to_char(acctqsales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end acctqsales_attr,<!-- 同期系别总销量 -->
+	       case
+	         when salesChange_attr is not null then
+	          to_char(salesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end salesChange_attr,<!-- 系别区间销量增速 -->
+	       case
+	         when totalSalesChange_attr is not null then
+	          to_char(totalSalesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalSalesChange_attr,<!-- 系别总销量增速（最后一行的total） -->
+	       case
+	         when mixChange_attr is not null then
+	          to_char(mixChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end mixChange_attr,<!-- 系别区间mix变化 -->
+	       case
+	         when salesChanges is not null then
+	          to_char(salesChanges,'fm99999999990')
+	         else
+	          '-'
+	       end salesChanges,<!-- 系别销量变化（没用到） -->
+	       case
+	         when shares_attr is not null then
+	          to_char(shares_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end shares_attr,<!-- 系别区间份额 -->
+	       case
+	         when sharesChange_attr is not null then
+	          to_char(sharesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end sharesChange_attr,<!-- 系别区间份额变化 -->
+	       case
+	         when allMix_attr is not null then
+	          to_char(allMix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end allMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       case
+	         when accTqAllMix_attr is not null then
+	          to_char(accTqAllMix_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end accTqAllMix_attr,<!-- 本期系别区间totalmix（列表最后一列total） -->
+	       case
+	         when allSales_attr is not null then
+	          to_char(allSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end allSales_attr,<!-- 本期系别区间total总销量（最后一列） -->
+	       case
+	         when actrueTqAllSales_attr is not null then
+	          to_char(actrueTqAllSales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end actrueTqAllSales_attr,<!-- 同期系别区间total总销量 -->
+	       case
+	         when accbqAllsales_attr is not null then
+	          to_char(accbqAllsales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end accbqAllsales_attr,<!-- 本期所有选择系别总销量（一定小于等于列表前面的累计销量） -->
+	       case
+	         when acctqAllsales_attr is not null then
+	          to_char(acctqAllsales_attr,'fm99999999990')
+	         else
+	          '-'
+	       end acctqAllsales_attr,<!-- 同期所有选择系别总销量 -->
+	       case
+	         when allSalesChange_attr is not null then
+	          to_char(allSalesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end allSalesChange_attr,<!-- 所选系别总的区间销量增速 -->
+	       case
+	         when totalAllyoy_attr is not null then
+	          to_char(totalAllyoy_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalAllyoy_attr,<!-- 所选系别总的销量增速（最后一行、最后一列的total） -->
+	       case
+	         when allMixchange_attr is not null then
+	          to_char(allMixchange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end allMixchange_attr,<!-- 所选系别 区间totalmix变化（列表最后一列total）-->
+	       case
+	         when salesAllChanges is not null then
+	          to_char(salesAllChanges,'fm99999999990')
+	         else
+	          '-'
+	       end salesAllChanges,<!-- 所选系别总销量变化（没用到） -->
+	       case
+	         when sharesAll is not null then
+	          to_char(sharesAll*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end sharesAll,<!-- 所选系别区间总份额 （列表最后一列total）-->
+	       case
+	         when totalSharesChange_attr is not null then
+	          to_char(totalSharesChange_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalSharesChange_attr,<!-- 所选系别区间总份额变化（列表最后一列total） -->
+	       case
+	         when totalShares_attr is not null then
+	          to_char(totalShares_attr*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalShares_attr,<!-- 系别总的份额 （列表最后一行total）-->
+	       case
+	         when totalSharesChanges is not null then
+	          to_char(totalSharesChanges*100,'fm99999999990.0')
+	         else
+	          '-'
+	       end totalSharesChanges<!-- 系别总份额变化（列表最后一行total） -->
+	       from lastestData 
+</select>
+</sqlMap>

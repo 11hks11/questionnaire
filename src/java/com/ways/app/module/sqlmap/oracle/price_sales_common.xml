@@ -1,0 +1,1150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="priceSalesCommon">
+	
+	<sql id="sourceSalesTables">
+		<isEqual property="cityType" compareValue="state">
+			FDM_VERSION_INSURANCE_MIX_SP 
+		</isEqual>
+		<isEqual property="cityType" compareValue="dist">
+			fdm_version_insurance_mix_dist 
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			fdm_version_insurance_mix_prov 
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			FDM_VERSION_INSURANCE_MIX_city 
+		</isEqual>
+	</sql>
+	
+	<sql id="sourceSalesWhere">
+		<isEqual property="cityType" compareValue="dist">
+			and x.district_id in ($cityId$)
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			and x.province_id in ($cityId$)  
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			and x.city_id in ($cityId$) 
+		</isEqual>
+	</sql>
+	
+	<sql id="otherTables">
+		<isEqual property="objectType" compareValue="segment">
+			,dm_sub_grade_new g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="manf">
+			,dm_manf g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="brand">
+			,dm_brand g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="manfBrand">
+			,dm_manf_brand g,dm_sub_model sm
+		</isEqual>
+		<isEqual property="objectType" compareValue="model">
+			,dm_sub_model sm
+		</isEqual>
+	</sql>
+	
+	<sql id="otherTablesWhere">
+		<isEqual property="objectType" compareValue="segment">
+			<isEqual property="isAllSegment" compareValue="f">
+				and g.sub_grade_id in ($value$)
+			</isEqual>
+		    and g.sub_model_id = x.sub_model_id
+		    and g.sub_model_id = sm.sub_model_id
+		</isEqual>
+		<isEqual property="objectType" compareValue="manf">
+			and x.sub_model_id = sm.sub_model_id
+		    and sm.manf_id = g.manf_id
+		    and g.manf_id in ($value$)
+		</isEqual>
+		<isEqual property="objectType" compareValue="brand">
+			and x.sub_model_id = sm.sub_model_id
+		    and sm.brand_id = g.brand_id
+		    and g.brand_id in ($value$)
+		</isEqual>
+		<isEqual property="objectType" compareValue="manfBrand">
+			and x.sub_model_id = sm.sub_model_id
+		    and sm.manf_brand_id = g.manf_brand_id
+		    and g.manf_brand_id in ($value$)
+		</isEqual>
+		<isEqual property="objectType" compareValue="model">
+			and x.sub_model_id = sm.sub_model_id
+			and sm.sub_model_id in ($value$)
+		</isEqual>
+	</sql>
+	
+	<sql id="actrueSalesTables">
+		<isEmpty property="cityType">
+			fdm_state_insurance 
+		</isEmpty>
+		<isNotEmpty property="cityType">
+			<isEqual property="cityType" compareValue="state">
+				fdm_state_insurance 
+			</isEqual>
+			<isEqual property="cityType" compareValue="dist">
+				fdm_dist_insurance 
+			</isEqual>
+			<isEqual property="cityType" compareValue="prov">
+				fdm_prov_insurance 
+			</isEqual>
+			<isEqual property="cityType" compareValue="city">
+				fdm_city_insurance 
+			</isEqual>
+		</isNotEmpty>
+	</sql>
+	
+	<sql id="modelTable">
+		<isNotEmpty property="subGradeIds">
+			inner join (select * from dm_sub_grade_new where sub_grade_id in ($subGradeIds$)) g
+			on sm.sub_model_id = g.sub_model_id
+		</isNotEmpty>
+		<isNotEmpty property="manfIds">
+			left join dm_manf dm
+			on sm.manf_id = dm.manf_id
+		</isNotEmpty>
+		<isNotEmpty property="brandIds">
+			left join dm_brand db
+			on sm.brand_id = db.brand_id
+		</isNotEmpty>
+		<isNotEmpty property="manfBrandIds">
+			left join dm_manf_brand dmb
+			on sm.manf_brand_id = dmb.manf_brand_id
+		</isNotEmpty>
+		<isNotEmpty property="bodyType">
+			left join dm_body_type dbt
+			on sm.body_type_id = dbt.body_type_id
+		</isNotEmpty>
+		<isNotEmpty property="carType">
+			left join dm_car_type dct
+			on sm.car_type_id = dct.car_type_id
+		</isNotEmpty>
+		<isNotEmpty property="original">
+			left join dm_original do
+			on sm.orig_id = do.original_id
+		</isNotEmpty>
+		<isNotEmpty property="pooAttribute">
+			left join dm_poo_attribute dpa
+			on sm.POO_ATTRIBUTE_ID = dpa.POO_ATTRIBUTE_ID
+		</isNotEmpty>
+	</sql>
+	<sql id="modelParam">
+		<!-- <isNotEmpty property="subGradeIds">
+			and g.sub_grade_id in ($subGradeIds$)
+		</isNotEmpty> -->
+		<isNotEmpty property="manfIds">
+			and dm.manf_id in ($manfIds$)
+		</isNotEmpty>
+		<isNotEmpty property="brandIds">
+			and db.brand_id in ($brandIds$)
+		</isNotEmpty>
+		<isNotEmpty property="manfBrandIds">
+			and dmb.manf_brand_id in ($manfBrandIds$)
+		</isNotEmpty>
+		<isNotEmpty property="bodyType">
+			and dbt.body_type_id in ($bodyType$)
+		</isNotEmpty>
+		<isNotEmpty property="carType">
+			and dct.car_type_id in ($carType$)
+		</isNotEmpty>
+		<isNotEmpty property="original">
+			and do.original_id in ($original$)
+		</isNotEmpty>
+		<isNotEmpty property="pooAttribute">
+			and dpa.POO_ATTRIBUTE_ID in ($pooAttribute$)
+		</isNotEmpty>
+		
+		<isEqual property="cityType" compareValue="dist">
+			and x.district_id in ($cityId$)
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			and x.province_id in ($cityId$)  
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			and x.city_id in ($cityId$) 
+		</isEqual>
+	</sql>
+	
+	<select id="getDate" resultClass="java.util.HashMap">
+		select substr(maxym,0,4) maxyear,substr(maxym,5,6) maxmonth,
+		       to_char(to_date(maxym,'yyyymm'),'yyyy-mm') maxym,
+		       to_char(to_date(minym,'yyyymm'),'yyyy-mm') minym
+		from (
+		  select max(ym) maxYm,min(ym) minYm
+		  from FDM_VERSION_INSURANCE_MIX_SP
+		)
+	</select>
+	
+	<resultMap class="com.ways.app.module.entity.Level0Entity" id="level0Entity" groupBy="id">
+		<result property="id" column="L0_ID"/>
+		<result property="text" column="L0_NAME"/>
+		<result property="checked" column="checked"/>
+		<result property="list" resultMap="priceSalesCommon.level1Entity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.Level1Entity" id="level1Entity" groupBy="id">
+		<result property="id" column="L1_ID"/>
+		<result property="text" column="L1_NAME"/>
+		<result property="list" resultMap="priceSalesCommon.level2Entity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.Level2Entity" id="level2Entity" groupBy="id">
+		<result property="id" column="L2_ID"/>
+		<result property="text" column="L2_NAME"/>
+		<result property="list" resultMap="priceSalesCommon.level3Entity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.Level3Entity" id="level3Entity">
+		<result property="id" column="L3_ID"/>
+		<result property="text" column="L3_NAME"/>
+	</resultMap>
+	<select id="getSegment" resultMap="priceSalesCommon.level0Entity">
+		select distinct g.level0id l0_id,g.level0name l0_name,
+		                g.level1id l1_id,g.level1name l1_name,
+		                g.level2id l2_id,g.level2name l2_name,
+		                g.level3id l3_id,g.level3name l3_name
+		                <isNotEmpty property="defaultGradeIds">
+		                ,case when g.level0id in ($defaultGradeIds$)
+			                      then '1'
+			                      else '0'
+			                    end checked   
+		                </isNotEmpty>
+		                <isEmpty property="defaultGradeIds">
+		                ,0 checked
+		                </isEmpty>
+		from <include refid="sourceSalesTables"/> t
+			left join dm_sub_grade_new g 
+			on t.sub_model_id = g.sub_model_id
+			left join dm_sub_model sm
+  		 on g.sub_model_id = sm.sub_model_id
+	  		 <isNotEmpty property="bodyType">
+				left join dm_body_type dbt
+				on sm.body_type_id = dbt.body_type_id
+			</isNotEmpty>
+			<isNotEmpty property="original">
+				left join dm_original do
+				on sm.orig_id = do.original_id
+			</isNotEmpty>
+			<isNotEmpty property="pooAttribute">
+				left join dm_poo_attribute dpa
+				on sm.POO_ATTRIBUTE_ID = dpa.POO_ATTRIBUTE_ID
+			</isNotEmpty>
+		where g.levelflag = 3
+		  and g.level0id <![CDATA[ <> ]]> 140
+		  <isNotEmpty property="tabType">
+		  	and t.ym between $startYm$ and $endYm$
+		  </isNotEmpty>
+			 <isNotEmpty property="bodyType">
+				and dbt.body_type_id in ($bodyType$)
+			</isNotEmpty>
+			<isNotEmpty property="original">
+				and do.original_id in ($original$)
+			</isNotEmpty>
+			<isNotEmpty property="pooAttribute">
+				and dpa.POO_ATTRIBUTE_ID in ($pooAttribute$)
+			</isNotEmpty>
+			
+			<isEqual property="cityType" compareValue="dist">
+				and t.district_id in ($cityId$)
+			</isEqual>
+			<isEqual property="cityType" compareValue="prov">
+				and t.province_id in ($cityId$)  
+			</isEqual>
+			<isEqual property="cityType" compareValue="city">
+				and t.city_id in ($cityId$) 
+			</isEqual>
+		order by 
+		  case when level0id = -2 then -4
+		  when level0id = -4 then -3
+	  	  when level0id = -3 then -2
+	  	  when level0id = -5 then -1
+	  	  else 0 end
+		,level1id,level2id,level3id
+	</select>
+	
+	<resultMap class="com.ways.app.module.entity.ManfBrandOfSpellEntity" id="manfBrandOfSpellEntity" groupBy="text">
+		<result property="text" column="py"/>
+		<result property="list" resultMap="priceSalesCommon.manfBrandEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.ManfBrandEntity" id="manfBrandEntity">
+		<result property="id" column="id"/>
+		<result property="text" column="text"/>
+		<result property="checked" column="checked"/>
+		<result property="orderNum" column="orderNum"/>
+	</resultMap>
+	<select id="getMainManf" parameterClass="java.util.HashMap" resultMap="priceSalesCommon.manfBrandOfSpellEntity">
+		with 
+		check_obj as
+		(
+		  select a.manf_id,a.sales,row_number() over(order by rn,sn) rn from (
+		    select m.manf_id,sum(x.bq_sales) sales,1 rn,decode(m.manf_id,21,1,6,2,3) sn
+		    from dm_manf m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_id = m.manf_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_id in (21,6,26)
+		    group by m.manf_id
+		    union all 
+		    select m.manf_id,sum(x.bq_sales) sales,2 rn,row_number() over(order by sum(x.bq_sales) desc nulls last) sn
+		    from dm_manf m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_id = m.manf_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_id not in (21,6,26)
+		    group by m.manf_id
+		  ) a
+		)
+		select m.manf_short_name_pinyin py,m.manf_id id,
+		       case when m.manf_id in ($objIds$)
+		         then '1'
+		         else '0'
+		       end checked,
+		       m.manf_short_name text,
+		       ck.rn orderNum
+		from check_obj ck,dm_sgm_manf dsm,dm_manf m
+		where ck.manf_id = dsm.manf_id
+		  and ck.manf_id = m.manf_id
+		order by m.manf_short_name_pinyin,rn
+	</select>
+	
+	<select id="getAllManf" parameterClass="java.util.HashMap" resultMap="priceSalesCommon.manfBrandOfSpellEntity">
+		with 
+		check_obj as
+		(
+		  select a.manf_id,a.sales,row_number() over(order by rn,sn) rn from (
+		    select m.manf_id,sum(x.bq_sales) sales,1 rn,decode(m.manf_id,21,1,6,2,3) sn
+		    from dm_manf m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_id = m.manf_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_id in (21,6,26)
+		    group by m.manf_id
+		    union all 
+		    select m.manf_id,sum(x.bq_sales) sales,2 rn,row_number() over(order by sum(x.bq_sales) desc nulls last) sn
+		    from dm_manf m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_id = m.manf_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_id not in (21,6,26)
+		    group by m.manf_id
+		  ) a
+		)
+		select m.manf_short_name_pinyin py,to_char(m.manf_id) id,
+		       case when ck.rn <![CDATA[ <= ]]> 5
+		         then '1'
+		         else '0'
+		       end checked,
+		       m.manf_short_name text,
+		       ck.rn orderNum
+		from check_obj ck,dm_manf m
+		where ck.manf_id = m.manf_id
+		order by m.manf_short_name_pinyin,rn
+	</select>
+	
+	
+	<sql id="brandTable">
+		<isNotEmpty property="subGradeIds">
+			left join dm_sub_grade_new g
+			on sm.sub_model_id = g.sub_model_id
+		</isNotEmpty>
+		
+		<isNotEmpty property="bodyType">
+			left join dm_body_type dbt
+			on sm.body_type_id = dbt.body_type_id
+		</isNotEmpty>
+		<isNotEmpty property="original">
+			left join dm_original do
+			on sm.orig_id = do.original_id
+		</isNotEmpty>
+		<isNotEmpty property="pooAttribute">
+			left join dm_poo_attribute dpa
+			on sm.POO_ATTRIBUTE_ID = dpa.POO_ATTRIBUTE_ID
+		</isNotEmpty>
+	</sql>
+	<sql id="brandParam">
+		<isNotEmpty property="subGradeIds">
+			and g.sub_grade_id in ($subGradeIds$)
+		</isNotEmpty>
+		
+		<isNotEmpty property="bodyType">
+			and dbt.body_type_id in ($bodyType$)
+		</isNotEmpty>
+		
+		<isNotEmpty property="original">
+			and do.original_id in ($original$)
+		</isNotEmpty>
+		<isNotEmpty property="pooAttribute">
+			and dpa.POO_ATTRIBUTE_ID in ($pooAttribute$)
+		</isNotEmpty>
+		
+		<isEqual property="cityType" compareValue="dist">
+			and x.district_id in ($cityId$)
+		</isEqual>
+		<isEqual property="cityType" compareValue="prov">
+			and x.province_id in ($cityId$)  
+		</isEqual>
+		<isEqual property="cityType" compareValue="city">
+			and x.city_id in ($cityId$) 
+		</isEqual>
+	</sql>
+	
+	<resultMap class="com.ways.app.module.entity.ManfBrandOfSpellEntity" id="allBrandOfSpellEntity" groupBy="text">
+		<result property="text" column="py"/>
+		<result property="list" resultMap="priceSalesCommon.allBrandEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.ManfBrandEntity" id="allBrandEntity">
+		<result property="id" column="id"/>
+		<result property="text" column="text"/>
+		<result property="checked" column="checked"/>
+	</resultMap>
+	<select id="getMainBrand" resultMap="priceSalesCommon.allBrandOfSpellEntity" parameterClass="java.util.HashMap">
+		select distinct b.brand_name_pinyin py,
+		                to_char(b.brand_id) id,
+		                case when b.brand_id in ($brandIds$)
+		                  then '1'
+		                  else '0'
+		                end checked,
+		                b.brand_name text
+		from dm_sgm_brand sb,dm_brand b,<include refid="sourceSalesTables"/> x
+		 left join dm_sub_model sm
+		 on x.sub_model_id = sm.sub_model_id
+		<include refid="brandTable"/>
+		where sb.brand_id = b.brand_id
+		  and b.brand_id = sm.brand_id
+		  and sm.sub_model_id = x.sub_model_id
+		  <include refid="brandParam"/>
+		order by b.brand_name_pinyin,b.brand_id
+	</select>
+	
+	<resultMap class="com.ways.app.module.entity.ManfBrandOfSpellEntity" id="brandOfSpellEntity" groupBy="text">
+		<result property="text" column="py"/>
+		<result property="list" resultMap="priceSalesCommon.brandEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.ManfBrandEntity" id="brandEntity">
+		<result property="id" column="id"/>
+		<result property="text" column="text"/>
+		<result property="checked" column="checked"/>
+		<result property="orderNum" column="orderNum"/>
+	</resultMap>
+	<select id="getAllBrand" resultMap="priceSalesCommon.brandOfSpellEntity" parameterClass="java.util.HashMap">
+		with data as (
+		  select distinct b.brand_name_pinyin py,
+		                to_char(b.brand_id) id,
+		                case when b.brand_id in ($brandIds$)
+		                  then '1'
+		                  else '0'
+		                end checked,
+		                b.brand_name text
+		from dm_brand b,<include refid="sourceSalesTables"/> x
+			left join dm_sub_model sm
+			 on x.sub_model_id = sm.sub_model_id
+			<include refid="brandTable"/>
+		where b.brand_id = sm.brand_id
+		  and sm.sub_model_id = x.sub_model_id
+		   <include refid="brandParam"/>
+		order by b.brand_name_pinyin,b.brand_id
+		),
+		result as (
+		  select py,id,checked,text,
+	       row_number() over(partition by case
+	         when id in ($brandIds$) then
+	          '1'
+	         else
+	          '0'
+	       end order by instr(#brandIds_sort#,(','||id||','))) orderNum
+	       from data
+	       order by py,id)
+	 select  py,id,checked,text,     
+	         case when checked = 1 then orderNum else null end orderNum
+	         from result 
+	</select>
+	
+	<select id="getMainManfBrand" resultMap="priceSalesCommon.manfBrandOfSpellEntity" parameterClass="java.util.HashMap">
+		with 
+		front_mb as
+		(   /*上汽通用*/
+		    select m.manf_brand_id,sum(x.bq_sales) sales,1 rn,decode(m.manf_brand_id, 23, 1, 105, 2, 3) sn
+		    from dm_manf_brand m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_brand_id = m.manf_brand_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_id = 21
+		    group by m.manf_brand_id
+		    union all /*一汽大众、上汽大众*/
+		    select manf_brand_id,sales,rn,row_number() over(order by sales desc) sn
+		    from (
+			    select m.manf_brand_id,m.manf_id,sum(x.bq_sales) sales,2 rn,row_number() over(partition by m.manf_id order by sum(x.bq_sales) desc nulls last) sn
+			    from dm_manf_brand m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+			    where 1 = 1
+			      <include refid="otherTablesWhere"/>
+			      <include refid="sourceSalesWhere"/>
+			      <isNotEmpty property="bodyType">
+			    	 and sm.body_type_id in ($bodyType$)
+			      </isNotEmpty>
+			      <isNotEmpty property="portType">
+			    	 and sm.poo_attribute_id in ($portType$)
+			      </isNotEmpty>
+			      <isNotEmpty property="originType">
+			    	 and sm.orig_id in ($originType$)
+			      </isNotEmpty>
+			      and sm.manf_brand_id = m.manf_brand_id
+			      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+			      and m.manf_id in (6, 26)
+			    group by m.manf_id,m.manf_brand_id
+			) where sn = 1
+		)
+		,check_obj as
+		(
+		  select a.manf_brand_id,a.sales,row_number() over(order by rn,sn) rn from (
+		    select * from front_mb
+		    union all 
+		    select m.manf_brand_id,sum(x.bq_sales) sales,3 rn,row_number() over(order by sum(x.bq_sales) desc nulls last) sn
+		    from dm_manf_brand m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_brand_id = m.manf_brand_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_brand_id not in (select manf_brand_id from front_mb)
+		    group by m.manf_brand_id
+		  ) a
+		)
+		select substr(mb.manf_brand_ename,0,1) py,
+		       mb.manf_brand_id id,
+		       case when mb.manf_brand_id in ($objIds$)
+		         then '1'
+		         else '0'
+		       end checked,
+		       mb.manf_brand_name text,
+		       ck.rn orderNum
+		from check_obj ck,dm_manf_brand mb,dm_sgm_manf_brand smb
+		where ck.manf_brand_id = mb.manf_brand_id
+		  and smb.manf_brand_id = mb.manf_brand_id
+		order by substr(mb.manf_brand_ename,0,1),rn
+	</select>
+	
+	<select id="getAllManfBrand" resultMap="priceSalesCommon.manfBrandOfSpellEntity" parameterClass="java.util.HashMap">
+		with 
+		front_mb as
+		(   /*上汽通用*/
+		    select m.manf_brand_id,sum(x.bq_sales) sales,1 rn,decode(m.manf_brand_id, 23, 1, 105, 2, 3) sn
+		    from dm_manf_brand m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_brand_id = m.manf_brand_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_id = 21
+		    group by m.manf_brand_id
+		    union all /*一汽大众、上汽大众*/
+		    select manf_brand_id,sales,rn,row_number() over(order by sales desc) sn
+		    from (
+			    select m.manf_brand_id,m.manf_id,sum(x.bq_sales) sales,2 rn,row_number() over(partition by m.manf_id order by sum(x.bq_sales) desc nulls last) sn
+			    from dm_manf_brand m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+			    where 1 = 1
+			      <include refid="otherTablesWhere"/>
+			      <include refid="sourceSalesWhere"/>
+			      <isNotEmpty property="bodyType">
+			    	 and sm.body_type_id in ($bodyType$)
+			      </isNotEmpty>
+			      <isNotEmpty property="portType">
+			    	 and sm.poo_attribute_id in ($portType$)
+			      </isNotEmpty>
+			      <isNotEmpty property="originType">
+			    	 and sm.orig_id in ($originType$)
+			      </isNotEmpty>
+			      and sm.manf_brand_id = m.manf_brand_id
+			      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+			      and m.manf_id in (6, 26)
+			    group by m.manf_id,m.manf_brand_id
+			) where sn = 1
+		)
+		,check_obj as
+		(
+		  select a.manf_brand_id,a.sales,row_number() over(order by rn,sn) rn from (
+		    select * from front_mb
+		    union all 
+		    select m.manf_brand_id,sum(x.bq_sales) sales,3 rn,row_number() over(order by sum(x.bq_sales) desc nulls last) sn
+		    from dm_manf_brand m,<include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		    where 1 = 1
+		      <include refid="otherTablesWhere"/>
+		      <include refid="sourceSalesWhere"/>
+		      <isNotEmpty property="bodyType">
+		    	 and sm.body_type_id in ($bodyType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="portType">
+		    	 and sm.poo_attribute_id in ($portType$)
+		      </isNotEmpty>
+		      <isNotEmpty property="originType">
+		    	 and sm.orig_id in ($originType$)
+		      </isNotEmpty>
+		      and sm.manf_brand_id = m.manf_brand_id
+		      and x.year||lpad(x.month_id,2,0) between $startDate$ and $endDate$
+		      and m.manf_brand_id not in (select manf_brand_id from front_mb)
+		    group by m.manf_brand_id
+		  ) a
+		)
+		select substr(mb.manf_brand_ename,0,1) py,
+		       mb.manf_brand_id id,
+		       case when ck.rn <![CDATA[ <= ]]> 5
+		         then '1'
+		         else '0'
+		       end checked,
+		       mb.manf_brand_name text,
+		       ck.rn orderNum
+		from check_obj ck,dm_manf_brand mb
+		where ck.manf_brand_id = mb.manf_brand_id
+		order by substr(mb.manf_brand_ename,0,1),rn
+	</select>
+	
+	<resultMap class="com.ways.app.module.entity.ObjGrandEntity" id="objGrandEntity" groupBy="text">
+		<result property="text" column="grandpa"/>
+		<result property="list" resultMap="priceSalesCommon.objFatherEntity"/>
+	</resultMap>
+	
+	<resultMap class="com.ways.app.module.entity.ObjFatherEntity" id="objFatherEntity" groupBy="text">
+		<result property="text" column="faname"/>
+		<result property="list" resultMap="priceSalesCommon.sonModelEntity"/>
+	</resultMap>
+	
+	<resultMap class="com.ways.app.module.entity.SgmAndCompareModelGrandEntity" id="sgmAndCompareModelGrandEntity" groupBy="text">
+		<result property="text" column="grandpa"/>
+		<result property="list" resultMap="priceSalesCommon.fatherSgmModelEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.FatherSgmModelEntity" id="fatherSgmModelEntity" groupBy="id">
+		<result property="id" column="faid"/>
+		<result property="text" column="faname"/>
+		<result property="sgm" column="faSgm"/>
+		<result property="importChecked" column="fapoo"/>
+		<result property="checked" column="faCheck"/>
+		<result property="list" resultMap="priceSalesCommon.sonModelEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.SonModelEntity" id="sonModelEntity">
+		<result property="id" column="sonId"/>
+		<result property="text" column="sonName"/>
+		<result property="sgm" column="sonSgm"/>
+		<result property="importChecked" column="sonPoo"/>
+		<result property="checked" column="sonCheck"/>
+	</resultMap>
+	<select id="getSgmAndCompareModel" resultMap="priceSalesCommon.sgmAndCompareModelGrandEntity" parameterClass="java.util.HashMap">
+		with 
+		sgm_model as
+		(
+		  select distinct b.brand_name grandpa,to_char(sm.sub_model_id) faId,sm.sub_model_name faName,b.brand_id,
+		                  decode(sm.poo_attribute_id,1,'1','0') faPoo,
+		                  case when sm.sub_model_id in ($subModelIds$)
+	                        then '1'
+	                        else '0'
+	                      end facheck,
+	                      '1' faSgm
+		  from dm_compare_model cm,dm_brand b,<include refid="sourceSalesTables"/> x
+		  left join dm_sub_model        sm
+         on x.sub_model_id = sm.sub_model_id
+		  	   <include refid="modelTable"/>
+		  where sm.sub_model_id = cm.sgm_submodel_id
+		    and sm.brand_id = b.brand_id
+		    and x.sub_model_id = sm.sub_model_id
+		    <include refid="modelParam"/>
+		)
+		,com_model as
+		(
+		  select distinct cm.sgm_submodel_id faid,to_char(cm.com_submodel_id) sonId,sm.sub_model_name sonName,
+		                  decode(sm.poo_attribute_id,1,'1','0') sonPoo,
+		                  case when cm.com_submodel_id in ($subModelIds$)
+	                        then '1'
+	                        else '0'
+	                      end soncheck,
+	                      case when sgm.sgm_submodel_id is null
+		                    then '0'
+		                    else '1'
+		                  end sonSgm
+		  from dm_compare_model cm,<include refid="sourceSalesTables"/> x
+		  left join dm_sub_model        sm
+            on x.sub_model_id = sm.sub_model_id
+          left join dm_compare_model sgm on x.sub_model_id = sgm.sgm_submodel_id
+		  	   <include refid="modelTable"/>
+		  where sm.sub_model_id = cm.com_submodel_id
+		    and x.sub_model_id = cm.com_submodel_id
+		    <include refid="modelParam"/>
+		)
+		select GRANDPA, FAID, FANAME, FAPOO, FACHECK, FASGM, SONID, SONNAME, SONPOO, SONCHECK, SONSGM from (
+			select distinct a.*,b.sonId,b.sonName,b.sonPoo,b.soncheck,b.sonSgm,decode(brand_id,15,1,14,2,3) rn
+			from sgm_model a
+			left join com_model b on a.faId = b.faId
+			order by a.grandpa,a.faid,b.sonid
+		) order by rn,faid,sonsgm,sonid
+	</select>
+	
+	<resultMap class="com.ways.app.module.entity.ObjGrandEntity" id="objGradeEntity" groupBy="text">
+		<result property="text" column="grandpa"/>
+		<result property="list" resultMap="priceSalesCommon.objGradeFatherEntity"/>
+	</resultMap>
+	
+	<resultMap class="com.ways.app.module.entity.ObjFatherEntity" id="objGradeFatherEntity" groupBy="text">
+		<result property="text" column="faname"/>
+		<result property="list" resultMap="priceSalesCommon.sonGradeModelEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.SonModelEntity" id="sonGradeModelEntity">
+		<result property="id" column="sonId"/>
+		<result property="text" column="sonName"/>
+		<result property="sgm" column="sonSgm"/>
+		<result property="importChecked" column="sonPoo"/>
+		<result property="checked" column="sonCheck"/>
+		<result property="orderNum" column="orderNum"/>
+	</resultMap>
+	<select id="getSegmentModel" resultMap="priceSalesCommon.objGradeEntity" parameterClass="java.util.HashMap">
+		with row_sn as
+		(
+		  select * from t_sub_grade g where sub_grade_group_id = 1
+		),
+		resultData as (
+		select a.*,case when a.sonId in ($subModelIds$) then '1' else '0' end sonCheck
+			,row_number() over(partition by case
+	         when a.sonId in ($subModelIds$) then
+	          '1'
+	         else
+	          '0'
+	       end order by instr(#subModelIds_sort#,(','||sonId||','))) orderNum
+		from 
+		(
+			select distinct g.level1name grandpa,g.level2name faName,sm.sub_model_id sonId,sm.sub_model_name sonName,
+			                case when sm.poo_attribute_id = 1
+			                  then '1'
+			                  else '0'
+			                end sonPoo,
+			                case when sgm.id is null
+	                          then '0'
+	                          else '1'
+	                        end sonSgm,
+	                        t1.sn sn1,
+	                        t2.sn sn2
+			from <include refid="sourceSalesTables"/> x
+			left join dm_sub_model        sm
+        	  on x.sub_model_id = sm.sub_model_id
+        	left join (select distinct sgm_submodel_id id from dm_compare_model) sgm
+              on sgm.id = sm.sub_model_id
+        	left join dm_sub_grade_new g
+        	  on sm.sub_model_id = g.sub_model_id
+			<include refid="modelTable"/>
+			left join (select * from row_sn where level_flag = 1) t1 on g.level1id = t1.SUB_GRADE_ID
+			left join (select * from row_sn where level_flag = 2) t2 on g.level2id = t2.SUB_GRADE_ID
+			where g.levelflag = 2
+			  and g.level1name <![CDATA[ <> ]]> 'Other'
+			  and g.sub_model_id = sm.sub_model_id
+			  and sm.sub_model_id = x.sub_model_id
+			  <include refid="modelParam"/>
+		) a 
+			order by sn1,sn2,sonsgm desc,sonid
+		)
+		select grandpa,faName,sonId,sonName,sonPoo,sonSgm,sn1,sn2,sonCheck,
+			case when sonCheck = 1 then to_number(orderNum) else null end orderNum
+			from resultData
+	</select>
+	
+	<select id="getBrandModel" resultMap="priceSalesCommon.objGrandEntity" parameterClass="java.util.HashMap">
+		select a.*,case when a.sonId in ($subModelIds$) then '1' else '0' end sonCheck
+		from 
+		(
+			select distinct b.brand_name_pinyin grandpa,
+			                b.brand_name faName,
+			                sm.sub_model_id sonId,
+			                sm.sub_model_name sonName,
+			                case when sm.poo_attribute_id = 1
+			                  then '1'
+			                  else '0'
+			                end sonPoo,
+			                case when sgm.id is null
+	                          then '0'
+	                          else '1'
+	                        end sonSgm,
+	                        case when b.brand_id in (14,15,46)
+	                          then 1
+	                          else 2
+	                        end rn
+			from <include refid="sourceSalesTables"/> x
+			left join dm_sub_model sm
+         	  on x.sub_model_id = sm.sub_model_id
+         	left join (select distinct sgm_submodel_id id from dm_compare_model) sgm
+              on sgm.id = sm.sub_model_id
+         	left join dm_brand b
+         	  on sm.brand_id = b.brand_id
+				 <include refid="modelTable"/>
+			where x.sub_model_id = sm.sub_model_id
+			  and sm.brand_id = b.brand_id
+			  <include refid="modelParam"/>
+		) a order by grandpa,rn,faname,sonid
+	</select>
+	
+	<!-- ................................................................... -->
+	
+	<resultMap class="com.ways.app.module.entity.BaseTextEntity" id="baseTextEntity">
+		<result property="value" column="value"/>
+		<result property="text" column="text"/>
+	</resultMap>
+	
+	<select id="getBodyType" parameterClass="java.util.HashMap" resultMap="priceSalesCommon.baseTextEntity">
+		select distinct b.body_type_id value,b.body_type_name text
+		from <include refid="sourceSalesTables"/> x <include refid="otherTables"/> ,dm_body_type b
+		where 1 = 1
+		  and b.body_type_id <![CDATA[ <> ]]> 22
+		  and sm.body_type_id = b.body_type_id
+		  <include refid="sourceSalesWhere"/>
+		  <include refid="otherTablesWhere"/>
+		order by b.body_type_id
+	</select>
+	
+	<select id="getOriginal" parameterClass="java.util.HashMap" resultMap="priceSalesCommon.baseTextEntity">
+		select distinct o.original_id value,o.original_name text
+		from <include refid="sourceSalesTables"/> x <include refid="otherTables"/> ,dm_original o
+		where 1 = 1
+		  and sm.orig_id = o.original_id
+		  <include refid="sourceSalesWhere"/>
+		  <include refid="otherTablesWhere"/>
+		order by o.original_id
+	</select>
+	
+	<select id="getPooAttribute" parameterClass="java.util.HashMap" resultMap="priceSalesCommon.baseTextEntity">
+		select distinct p.poo_attribute_id value,p.poo_attribute_name text
+		from <include refid="sourceSalesTables"/> x <include refid="otherTables"/> ,dm_poo_attribute p
+		where 1 = 1
+		  and sm.poo_attribute_id = p.poo_attribute_id
+		  and p.poo_attribute_id in (1,3)
+		  <include refid="sourceSalesWhere"/>
+		  <include refid="otherTablesWhere"/>
+		order by p.poo_attribute_id
+	</select>
+	
+	<select id="getMaxAndMin" parameterClass="java.util.HashMap" resultClass="java.util.HashMap">
+		with t_datas as
+		(
+		  select <isEqual property="priceType" compareValue="tp">
+				 	ceil(max(x.tp) / 10000) maxVal,floor(min(x.tp) / 10000) minVal
+			   	 </isEqual>
+			     <isEqual property="priceType" compareValue="msrp">
+				 	ceil(max(x.msrp) / 10000) maxVal,floor(min(x.msrp) / 10000) minVal
+			     </isEqual>
+		  from <include refid="sourceSalesTables"/> x <include refid="otherTables"/>
+		  where 1 = 1
+		    <include refid="sourceSalesWhere"/>
+		    <include refid="otherTablesWhere"/>
+		)
+		select '1' as analyze_type,
+		       '1' as object_id,
+		       decode(t.maxval, null, 31, t.maxval) as maxval,
+		       decode(t.minval, null, 8, t.minval) as minval,
+		       t.price_interval as INTERV,
+		       decode(t.maxval, null, 31, t.maxval) as maxprice,
+		       decode(t.minval, null, 8, t.minval) as minprice,
+		       t.is_default as ISDEFAULT
+		from (
+		  <![CDATA[
+		  select t.*,
+		         case
+		           when t.maxval - t.minval > 0 and t.maxval - t.minval <= 8 then
+		            0.5
+		           when t.maxval - t.minval > 9 and t.maxval - t.minval <= 15 then
+		            1
+		           when t.maxval - t.minval > 16 and t.maxval - t.minval <= 30 then
+		            2
+		           when t.maxval - t.minval > 30 and t.maxval - t.minval <= 50 then
+		            3
+		           when t.maxval - t.minval > 50 and t.maxval - t.minval <= 80 then
+		            5
+		           when t.maxval - t.minval > 80 then
+		            8
+		           else
+		            2
+		         end price_interval,
+		         0 is_default
+		    from t_datas t
+		  union
+		  select t.*,
+		         case
+		           when t.maxval - t.minval > 0 and t.maxval - t.minval <= 8 then
+		            1
+		           when t.maxval - t.minval > 9 and t.maxval - t.minval <= 15 then
+		            2
+		           when t.maxval - t.minval > 10 and t.maxval - t.minval <= 30 then
+		            3
+		           when t.maxval - t.minval > 30 and t.maxval - t.minval <= 50 then
+		            5
+		           when t.maxval - t.minval > 50 and t.maxval - t.minval <= 80 then
+		            8
+		           when t.maxval - t.minval > 80 then
+		            10
+		           else
+		            3
+		         end price_interval,
+		         1 is_default
+		    from t_datas t
+		  union
+		  select t.*,
+		         case
+		           when t.maxval - t.minval > 0 and t.maxval - t.minval <= 8 then
+		            2
+		           when t.maxval - t.minval > 9 and t.maxval - t.minval <= 15 then
+		            3
+		           when t.maxval - t.minval > 10 and t.maxval - t.minval <= 30 then
+		            5
+		           when t.maxval - t.minval > 30 and t.maxval - t.minval <= 50 then
+		            8
+		           when t.maxval - t.minval > 50 and t.maxval - t.minval <= 80 then
+		            10
+		           when t.maxval - t.minval > 80 then
+		            15
+		           else
+		            5
+		         end price_interval,
+		         0 is_default
+		    from t_datas t
+		]]>
+		) t
+		order by t.price_interval
+	</select>
+	
+	<resultMap class="com.ways.app.module.entity.AllAreaEntity" id="allAreaEntity" groupBy="id">
+		<result property="text" column="brandName"/>
+		<result property="title" column="brandNamet"/>
+		<result property="id" column="brandId"/>
+		<result property="list" resultMap="priceSalesCommon.areaEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.AreaEntity" id="areaEntity" groupBy="id">
+		<result property="text" column="distName"/>
+		<result property="id" column="distId"/>
+		<result property="list" resultMap="priceSalesCommon.provinceEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.ProvinceEntity" id="provinceEntity" groupBy="id">
+		<result property="text" column="proName"/>
+		<result property="id" column="proId"/>
+		<result property="list" resultMap="priceSalesCommon.cityEntity"/>
+	</resultMap>
+	<resultMap class="com.ways.app.module.entity.CityEntity" id="cityEntity">
+		<result property="text" column="cityName"/>
+		<result property="id" column="cityId"/>
+	</resultMap>
+	
+	<select id="getAreaCityData" resultMap="priceSalesCommon.allAreaEntity">
+		with 
+		city as
+		(
+		  select distinct to_char(b.brand_id) brandId,b.brand_name||'大区' brandName,b.brand_name||'大区' brandNamet,
+		                  to_char(d.district_id) distId,b.brand_name||d.district_name distName,
+		                  p.province_id proId,p.province_name proName,
+		                  c.city_id cityId,c.city_name cityName,
+		                  decode(b.brand_id,15,1,14,2,3) rn1,
+		                  d.district_name rn2
+		  from dm_city c,dm_province p,dm_district d,dm_district_province dp,dm_brand b
+		  where c.province_id = p.province_id
+		    and p.province_id = dp.province_id
+		    and d.district_id = dp.district_id
+		    and d.brand_id = b.brand_id
+		  order by b.brand_id desc,d.district_id,p.province_id,c.city_id
+		)
+		,data_city as
+		(
+		  select distinct x.city_id from FDM_VERSION_INSURANCE_MIX_city x
+		)
+		select BRANDID,BRANDNAME,BRANDNAMET,DISTID,DISTNAME,PROID,PRONAME,CITYID,CITYNAME
+		from city c, data_city d where c.cityId = d.city_id
+		order by rn1,rn2,proid,cityid
+	</select>
+	
+	<select id="getProvinceData" resultMap="priceSalesCommon.provinceEntity">
+		with 
+		city as
+		(
+		  select p.province_id proId,p.province_name proName,
+		         c.city_id cityId,c.city_name cityName
+		  from dm_city c,dm_province p
+		  where c.province_id = p.province_id
+		  order by p.province_id,c.city_id
+		)
+		,data_city as
+		(
+		  select distinct x.city_id from FDM_VERSION_INSURANCE_MIX_city x
+		)
+		select c.*
+		from city c,data_city d
+		where c.cityId = d.city_id
+		order by proid,cityid
+	</select>
+	
+<sql id="salesElement">
+	<isEmpty property="cityType">
+		x.bq_sales 
+	</isEmpty>
+	<isNotEmpty property="cityType">
+		<isEqual property="cityType" compareValue="state">
+			x.bq_sales 
+		</isEqual>
+		<isNotEqual property="cityType" compareValue="state">
+			x.bq_reg_qty 
+		</isNotEqual>
+	</isNotEmpty>
+</sql>	
+	<select id="getMaxSalesModelId" resultClass="java.util.HashMap">
+		select to_char(id) id,sub_model_name from (
+		  select sub_model_id id,sub_model_name,sales,row_number() over(order by sort_num ,sales desc nulls last) rn
+		  from (
+		    select x.sub_model_id,sum(x.bq_sales) sales,sm.sub_model_name
+		    ,case when manf.manf_id = 21 then 
+                         1 
+                         when manf.manf_id in (6,26) then 
+                           2
+                           else 3 end sort_num
+		    from <include refid="sourceSalesTables"/> x
+		    left join dm_sub_model sm
+		     on x.sub_model_id = sm.sub_model_id
+		    left join dm_manf manf
+             on sm.manf_id = manf.manf_id
+		    <include refid="modelTable"/>
+		    where x.ym between $startYm$ and $endYm$
+		    <include refid="modelParam"/>
+		    group by x.sub_model_id,sm.sub_model_name,
+		    	case when manf.manf_id = 21 then 
+                         1 
+                         when manf.manf_id in (6,26) then 
+                           2
+                           else 3 end
+		  )
+		)
+		where rn <![CDATA[ <= ]]> 10  and sales >0
+	</select>
+<select id="getDefaultBrandId" resultClass="java.util.HashMap">
+		select to_char(brand_id) id from (
+		  select brand_id,sales,row_number() over(order by sort_num ,sales desc nulls last) rn
+		  from (
+		    select sum(<include refid="salesElement"/>) sales
+		    	,sm.brand_id,
+                       case when brand.brand_id =15 then 
+                         1 
+                        when brand.brand_id = 14 then
+                          2
+                         when brand.brand_id = 46 then
+                           3 
+                         when manf.manf_id in (6,26) then 
+                           4
+                           else 5 end sort_num
+		    from <include refid="actrueSalesTables"/> x
+		    left join dm_sub_model sm
+		     on x.sub_model_id = sm.sub_model_id
+		    left join dm_manf manf
+             on sm.manf_id = manf.manf_id
+            left join dm_brand brand 
+             on sm.brand_id = brand.brand_id
+             <isNotEmpty property="subGradeIds">
+             	left join dm_sub_grade_new g
+             	on sm.sub_model_id = g.sub_model_id
+             </isNotEmpty>
+		    <isNotEmpty property="bodyType">
+				left join dm_body_type dbt
+				on sm.body_type_id = dbt.body_type_id
+			</isNotEmpty>
+			<isNotEmpty property="original">
+				left join dm_original do
+				on sm.orig_id = do.original_id
+			</isNotEmpty>
+			<isNotEmpty property="pooAttribute">
+				left join dm_poo_attribute dpa
+				on sm.POO_ATTRIBUTE_ID = dpa.POO_ATTRIBUTE_ID
+			</isNotEmpty>
+		    where x.year || lpad(x.month_id, 2, 0) between $startYm$ and $endYm$
+		   	<isNotEmpty property="subGradeIds">
+		   		and g.sub_grade_id in ($subGradeIds$)
+		   	</isNotEmpty>
+		    <isNotEmpty property="bodyType">
+				and dbt.body_type_id in ($bodyType$)
+			</isNotEmpty>
+			<isNotEmpty property="original">
+				and do.original_id in ($original$)
+			</isNotEmpty>
+			<isNotEmpty property="pooAttribute">
+				and dpa.POO_ATTRIBUTE_ID in ($pooAttribute$)
+			</isNotEmpty>
+		    group by sm.brand_id,
+		    	case when brand.brand_id =15 then 
+                         1 
+                        when brand.brand_id = 14 then
+                          2
+                         when brand.brand_id = 46 then
+                           3 
+                         when manf.manf_id in (6,26) then 
+                           4
+                           else 5 end
+		  )
+		)
+		where rn <![CDATA[ <= ]]> 5
+	</select>	
+</sqlMap>

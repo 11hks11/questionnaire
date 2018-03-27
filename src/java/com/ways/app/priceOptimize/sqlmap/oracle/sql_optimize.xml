@@ -1,0 +1,271 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="optimize">
+
+	<resultMap class="com.ways.app.priceOptimize.entity.SubModel" id="sub_model_map" groupBy="subModelId">
+		<result property="rank" column="rank"/>
+		<result property="subModelId" column="subModelId"/>
+		<result property="subModelName" column="subModelName"/>
+		<result property="subModelSales" column="subModelSales"/>
+		<result property="versionList" resultMap="optimize.version_map"/>
+		<result property="speedUp" column="speedUp"/>
+		<result property="proportion" column="proportion"/>
+		<result property="proportionChange" column="proportionChange"/>
+		<result property="share" column="t_share"/>
+		<result property="shareChange" column="shareChange"/>
+	</resultMap>
+	<resultMap class="com.ways.app.priceOptimize.entity.Version" id="version_map">
+		<result property="versionId" column="versionId"/>
+		<result property="versionName" column="versionName"/>
+		<result property="versionSales" column="versionSales"/>
+	</resultMap>
+	<select id="getComparisonModel" parameterClass="java.util.Map" resultMap="sub_model_map">
+		with t_segment_sale as
+		 (select nvl(sum(s.bq_sales), 0) as all_bq_sale,
+		         nvl(sum(s.tq_sales), 0) as all_tq_sale
+		    from dm_sub_model_segment seg
+		   inner join fdm_version_insurance_mix_sp s
+		      on s.sub_model_id = seg.sub_model_id
+		   where seg.grade_category_id = 1
+		     and seg.sub_grade_id = $marketId$
+		     and s.tp between $minPrice$ and $maxPrice$
+		     and s.ym = $time$),
+		all_sale as
+		 (select s.sub_model_id,
+		         nvl(sum(s.bq_sales), 0) as bq_all_sale,
+		         nvl(sum(s.tq_sales), 0) as tq_all_sale
+		    from fdm_version_insurance_mix_sp s
+		   where s.ym = $time$
+		     and s.sub_model_id in ($vsModelIds$,$myModelIds$)
+		   group by s.sub_model_id),
+		t_version_sales as
+		 (select s.version_id,
+		         sum(s.bq_sales) as bq_sales,
+		         nvl(sum(s.tq_sales),0) as tq_sales
+		    from fdm_version_insurance_mix_sp s
+		   where s.tp between $minPrice$ and $maxPrice$
+		     and s.ym = $time$
+		     and s.sub_model_id in ($vsModelIds$,$myModelIds$) group by s.version_id),
+		t_data as (
+		  select dsm.sub_model_id,dsm.sub_model_name,
+		  sum(s.bq_sales) over(partition by dsm.sub_model_id) as bq_sale_sum,
+		  sum(s.tq_sales) over(partition by dsm.sub_model_id) as tq_sale_sum,
+		  dv.version_id,dv.version_name,s.bq_sales
+		  from t_version_sales s
+		  inner join dm_version dv on s.version_id = dv.version_id
+		  inner join dm_sub_model dsm on dsm.sub_model_id=dv.sub_model_id
+		) 
+		select rank() over (order by t.bq_sale_sum desc, t.bq_sales desc) as rank,
+			   t.sub_model_id as subModelId,
+			   t.sub_model_name as subModelName,
+		       round(t.bq_sale_sum) as subModelSales,
+		       t.version_name as versionName,
+		       t.version_id as versionId,
+		       case
+		         when t.bq_sales is null then
+		          '-'
+		         else
+		          to_char(round(t.bq_sales))
+		       end as versionSales,
+		       case
+		         when t.tq_sale_sum = 0 or t.bq_sale_sum is null or t.tq_sale_sum is null then
+		          '-'
+		         else
+		          to_char(round(((t.bq_sale_sum - t.tq_sale_sum) / t.tq_sale_sum) * 100, 1),'FM9999990.9') || '%'
+		       end as speedUp,
+		       case
+		         when a.bq_all_sale = 0 or t.bq_sale_sum is null or a.bq_all_sale is null then
+		          '-'
+		         else
+		          to_char(round((t.bq_sale_sum / a.bq_all_sale) * 100, 1),'FM9999990.9') || '%'
+		       end as proportion,
+		       case
+		         when a.bq_all_sale = 0 or t.bq_sale_sum is null or a.bq_all_sale is null or t.tq_sale_sum is null or a.bq_all_sale is null then
+		          '-'
+		         else
+		          to_char(round((t.bq_sale_sum / a.bq_all_sale) * 100 -
+		                (t.tq_sale_sum / a.bq_all_sale) * 100,
+		                1),'FM9999990.9') || '%'
+		       end as proportionChange,
+		       case
+		         when seg.all_bq_sale = 0 or t.bq_sale_sum is null then
+		          '-'
+		         else
+		          to_char(round((t.bq_sale_sum / (seg.all_bq_sale) * 100), 1),'FM9999990.9') || '%'
+		       end as t_share,
+		       case
+		         when seg.all_bq_sale = 0 or t.bq_sale_sum is null or seg.all_bq_sale is null or t.tq_sale_sum is null or seg.all_tq_sale is null then
+		          '-'
+		         else
+		          to_char(round(((t.bq_sale_sum / seg.all_bq_sale) * 100) -
+		                ((t.tq_sale_sum / seg.all_tq_sale) * 100),
+		                1),'FM9999990.9') || '%'
+		       end as shareChange
+		  from t_segment_sale seg, t_data t
+		 inner join all_sale a
+		    on t.sub_model_id = a.sub_model_id
+		 order by t.bq_sale_sum desc, t.bq_sales desc
+	</select>
+	
+	<resultMap class="com.ways.app.priceOptimize.entity.Mix" id="mix" groupBy="versionId">
+		<result property="versionId" column="versionId"/>
+		<result property="versionName" column="versionName"/>
+		<result property="tp" column="tp"/>
+		<result property="msrp" column="msrp"/>
+		<result property="loseList" resultMap="optimize.mixLose"/>
+	</resultMap>
+	<resultMap class="com.ways.app.priceOptimize.entity.Lose" id="mixLose">
+		<result property="talkingVale" column="talkingVale"/>
+		<result property="configName" column="configName"/>
+	</resultMap>
+	<select id="getMixData" parameterClass="java.util.Map" resultMap="mix">
+		with t_p as
+		 (select s.version_id, d.version_name, s.tp, s.msrp
+		    from fdm_version_insurance_mix_sp s
+		   inner join dm_version d
+		      on d.version_id = s.version_id
+		   where s.ym = $time$
+		     and s.version_id in ($myModelId$, $vsModelId$)),
+		t_config as
+		 (select l.version_id, l.talking_vale, v.config_name
+		    from fdm_product_reviews_lose l
+		   inner join vw_conf_info v
+		      on v.config_id = l.config_id
+		   where l.year = $year$
+		     and l.quarter = $quarter$
+		     and l.version_id in ($myModelId$, $vsModelId$))
+		select  p.version_id as versionId,p.version_name as versionName,round(p.tp/10000,2) || '万' as tp,round(p.msrp/10000,2) || '万' as msrp,
+				round(f.talking_vale*100,1) || '%' as talkingVale, f.config_name as configName
+		  from t_p p
+		 inner join t_config f
+		    on f.version_id = p.version_id
+	</select>
+	
+	<select id="getConfigList" parameterClass="java.util.Map" resultClass="com.ways.app.priceOptimize.entity.Configuration">
+		select v.config_id as configId,
+		       v.version_id as versionId,
+		       vw.conf_type_id as configTypeId,
+		       vw.conf_type_name as configTypeName,
+		       vw.config_name as configName,
+		       vw.sort_num as sortNum,
+		       vw.data_type as dataType
+		  from dm_conf_version v
+		 inner join vw_conf_info vw
+		    on vw.config_id = v.config_id
+		 where v.version_id in ($myModelId$,$vsModelId$)
+	</select>
+	
+	<select id="getAttentionAndSatisfaction" parameterClass="java.util.Map" resultClass="com.ways.app.priceOptimize.entity.AttentionAndSatisfaction">
+		with t_config_type as
+		 (select config_type_id,config_type_name from dm_conf_type_internet),
+		t_my as
+		 (select t.config_type_id, t.config_type_name,
+		         m.attention_vale    as attention_vale_original,
+		         m.attention_vale    as attention_vale,
+		         m.satisfaction_vale as satisfaction_vale
+		    from t_config_type t
+		    left join (select a.config_type_id,
+		                     a.attention_vale    as attention_vale,
+		                     a.satisfaction_vale as satisfaction_vale
+		                from fdm_product_reviews_attri a
+		               inner join dm_version v
+		                  on a.sub_model_id = v.sub_model_id
+		                 and a.yq_id = $yq_id$
+		                 and v.version_id = $myModelId$) m
+		      on t.config_type_id = m.config_type_id),
+		t_vs as
+		 (select t.config_type_id, v.satisfaction_vale as satisfaction_vale
+		    from t_config_type t
+		    left join (select a.config_type_id,
+		                     a.satisfaction_vale as satisfaction_vale
+		                from fdm_product_reviews_attri a
+		               inner join dm_version v
+		                  on a.sub_model_id = v.sub_model_id
+		                 and a.yq_id = $yq_id$
+		                 and v.version_id = $vsModelId$) v
+		      on t.config_type_id = v.config_type_id)
+		select t_my.config_type_id as configTypeId,
+		       t_my.config_type_name as configTypeName,
+		       case
+		         when t_my.attention_vale is null then
+		          '-'
+		         else
+		          round(t_my.attention_vale * 100, 1) || '%'
+		       end as myAttentionVale,
+		       nvl(to_char(round(t_my.satisfaction_vale * 100, 1)),'-') as mySatisfactionVale,
+		       nvl(to_char(round(t_vs.satisfaction_vale * 100, 1)),'-') as vsSatisfactionVale
+		  from t_my
+		 inner join t_vs
+		    on t_my.config_type_id = t_vs.config_type_id
+		 order by t_my.attention_vale_original desc nulls last
+	</select>
+	
+	<resultMap class="com.ways.app.priceOptimize.entity.Version" id="versionMap" groupBy="versionId">
+		<result property="subModelEname" column="subModelEname"/>
+		<result property="subModelImage" column="subModelImage"/>
+		<result property="versionId" column="versionId"/>
+		<result property="versionName" column="versionName"/>
+		<result property="msrp" column="msrp"/>
+		<result property="tp" column="tp"/>
+		<result property="allocation" resultMap="optimize.allocation"/>
+	</resultMap>
+	<resultMap class="com.ways.app.priceOptimize.entity.Config" id="allocation">
+		<result property="configTypeName" column="configTypeName"/>
+		<result property="satisfactionValue" column="satisfactionValue"/>
+	</resultMap>
+	<select id="getDataByVersionIds" parameterClass="java.util.Map" resultMap="versionMap">
+		select dsm.sub_model_ename    as subModelEname,
+		       dsm.image_path         as subModelImage,
+		       dv.version_id          as versionId,
+		       dv.version_name        as versionName,
+		       fpra.satisfaction_vale as satisfactionValue,
+		       dcti.config_type_name  as configTypeName,
+		       round(sp.msrp/10000,1)||'万' as msrp,
+       		   round(sp.tp/10000,1)||'万' as tp
+		  from dm_version dv
+		 inner join dm_sub_model dsm
+		    on dv.sub_model_id = dsm.sub_model_id
+		 inner join fdm_product_reviews_attri fpra
+		    on fpra.sub_model_id = dsm.sub_model_id
+		   and fpra.yq_id = $yqId$
+		 inner join dm_conf_type_internet dcti
+		    on dcti.config_type_id = fpra.config_type_id
+		 inner join fdm_version_insurance_mix_sp sp 
+		 	on sp.version_id=dv.version_id and sp.ym=$time$
+		 where dv.version_id in ($versionIds$)
+	</select>
+	
+	<resultMap class="com.ways.app.priceOptimize.entity.Version" id="versionMap1" groupBy="versionId"> 
+		<result property="versionId" column="versionId"/>
+		<result property="lose" resultMap="optimize.lose"/>
+	</resultMap>
+	<resultMap class="com.ways.app.priceOptimize.entity.Lose" id="lose">
+		<result property="configName" column="configName"/>
+	</resultMap>
+	<select id="getLoseByVersionIds" parameterClass="java.util.Map" resultMap="versionMap1">
+		 select lose.version_id as versionId,
+	        c.config_name || round(lose.talking_vale * 100, 1) || '%' as configName
+		   from fdm_product_reviews_lose lose
+		  inner join vw_conf_info c
+		     on c.config_id = lose.config_id
+		  where lose.yq_id = $yqId$
+		    and lose.version_id in ($versionIds$)
+	</select>
+	
+	<select id="getSubModelByVersionId" parameterClass="String" resultClass="com.ways.app.priceOptimize.entity.Version">
+		 select s.sub_model_ename as subModelEname, s.image_path as subModelImage
+		   from dm_version v
+		  inner join dm_sub_model s
+		     on v.sub_model_id = s.sub_model_id
+		  where v.version_id = $versionId$
+	</select>
+	
+	<insert id="saveReportParams" parameterClass="java.util.Map">
+		insert into fdm_report_param values (#userId# ,#timeStr# ,#myvs# ,#subModelId# , sysdate)
+	</insert>
+	
+	<delete id="deleteReportParams" parameterClass="java.util.Map">
+	    delete from fdm_report_param where user_id=#userId# and sub_model_id=#subModelId#
+	</delete>
+
+</sqlMap>

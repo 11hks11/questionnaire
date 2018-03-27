@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE sqlMap PUBLIC "-//ibatis.apache.org//DTD SQL Map 2.0//EN" "http://ibatis.apache.org/dtd/sql-map-2.dtd" >
+<sqlMap namespace="preoptimize">
+	
+	
+	<select id="getDate" resultClass="com.ways.app.priceOptimize.entity.DateValue" >
+	    select  to_char(to_date(max(t.ym), 'yyyymm'), 'yyyy-fmmm') as max,
+     			 to_char(to_date(min(t.ym), 'yyyymm'), 'yyyy-fmmm') as min
+          from FDM_VERSION_INSURANCE_MIX_SP t
+          join fdm_internet_cocircle c on c.yq_id=substr(t.ym,1,4)||'0'||ceil(substr(t.ym,5,2)/3)
+	</select>
+	
+	
+	<select id="getBaseModel" resultClass="com.ways.app.priceOptimize.entity.ModelBase" >
+	 select d.sub_model_id as id,d.sub_model_name as name,d.image_path as url
+      ,max(ceil(m.tp/10000))||'万' as maxTp
+      ,min(floor(m.tp/10000))||'万' as minTp
+      ,g.sub_grade_name as marketName
+       ,g.sub_grade_id as marketId
+       ,to_char(r.create_time,'yyyy/MM/dd') as report
+       ,r.time_str as reportDate
+       ,r.myvs
+      from  dm_sub_model d
+       join dm_brand b on b.brand_id=d.brand_id
+        left join fdm_report_param r on r.sub_model_id=d.sub_model_id
+       join fdm_version_insurance_mix_sp m on m.sub_model_id=d.sub_model_id
+       join (select distinct c.sub_model_id_base,c.yq_id from  fdm_internet_cocircle c)c on c.sub_model_id_base=d.sub_model_id
+        join dm_sub_model_segment s on d.sub_model_id=s.sub_model_id and s.grade_category_id=1
+        join (select distinct g.sub_grade_id,g.sub_grade_name from dm_sub_grade_new g )g on s.sub_grade_id=g.sub_grade_id 
+      where b.brand_id=$brand$ and m.tp is not null 
+      and c.yq_id=substr($ym$,1,4)||'0'||ceil(substr($ym$,5,2)/3)
+       and m.ym=$ym$
+      and m.bq_sales is not null
+      group by d.sub_model_id,d.sub_model_name,d.image_path,g.sub_grade_name,g.sub_grade_id,r.create_time,r.time_str,r.myvs
+        order by sum(m.bq_sales) desc
+	</select>
+	
+	
+	<select id="getCompModel" resultClass="com.ways.app.priceOptimize.entity.ModelComp" >
+	 select distinct c.sub_mdoel_id_comp as id,d.sub_model_name as name,
+	 		c.comp_relation_score as score
+	 		 from  fdm_internet_cocircle c
+           join dm_sub_model d on d.sub_model_id=c.sub_mdoel_id_comp
+            join fdm_version_insurance_mix_sp m on m.sub_model_id=d.sub_model_id
+          where c.sub_model_id_base=$myModelId$ 
+          and c.yq_id=substr($ym$,1,4)||'0'||ceil(substr($ym$,5,2)/3) 
+          and c.stage_id=$stageId$
+          and m.ym=$ym$ 
+          and m.bq_sales is not null
+          order by c.comp_relation_score desc
+	</select>
+	
+
+	<resultMap class="com.ways.app.priceOptimize.entity.SalesData"  id="SalesData" 
+	groupBy="segment,bqSales,growth,bqMix,mixChange,baseBqSales,baseGrowth,baseBqMix,baseMixChange
+	,baseModelShare,baseShareChange">
+	<!-- groupBy="" -->  
+		<result column="segment" property="segment"/>
+		<result column="bqSales" property="bqSales"/>
+		<result column="growth" property="growth"/>
+		<result column="bqMix" property="bqMix"/>
+		<result column="mixChange" property="mixChange"/>
+		<result column="baseBqSales" property="baseBqSales"/>
+		<result column="baseGrowth" property="baseGrowth"/>
+		<result column="baseBqMix" property="baseBqMix"/>
+		<result column="baseMixChange" property="baseMixChange"/>
+		<result column="baseModelShare" property="baseModelShare"/>
+		<result column="baseShareChange" property="baseShareChange"/>
+		<result  property="compDateList" resultMap="preoptimize.Comp"/>
+	</resultMap>
+	<resultMap class="com.ways.app.priceOptimize.entity.CompData" id="Comp" groupBy="id">
+		<result column="id" property="id"/>
+		<result  property="SalesDataComp" resultMap="preoptimize.CompData"/>
+	</resultMap>
+	<resultMap class="com.ways.app.priceOptimize.entity.SalesDataComp" id="CompData">
+		<result column="compBqSales" property="compBqSales"/>
+		<result column="compGrowth" property="compGrowth"/>
+		<result column="compBqMix" property="compBqMix"/>
+		<result column="compMixChange" property="compMixChange"/>
+		<result column="compModelShare" property="compModelShare"/>
+		<result column="compShareChange" property="compShareChange"/>
+	</resultMap>
+	
+	<select id="getSalesDistribute"  resultMap="SalesData" >
+	<!-- <![CDATA[ -->
+	 
+	 with pre as
+ (
+  $leftSegmentSql$
+  ),
+modelRange as
+(
+ select $priceSegmentSql$
+	    fsort ,
+        sum(m.bq_sales)  as bqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id=$myModelId$ and m.ym=$ym$
+ group by $priceSegmentSql$ 
+),
+modelSales as
+(
+select  sum(m.bq_sales) as bqSales
+ from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id=$myModelId$ and m.ym=$ym$
+ 
+),
+tqModelRange as
+(
+ select $priceSegmentSql$
+ 		 fsort ,
+        sum(m.bq_sales)  as tqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id=$myModelId$ and m.ym=$lastYm$
+ group by $priceSegmentSql$ 
+),
+tqModelSales as
+(
+select  sum(m.bq_sales) as tqSales
+       
+ from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id=$myModelId$ and m.ym=$lastYm$
+ 
+),
+modelMix1 as
+(select s.fsort,
+         s.bqSales / m.bqSales as bqMix     
+      from modelSales m,modelRange s),
+modelMix2 as    
+(select ts.fsort,
+            ts.tqSales / tm.tqSales as tqMix
+      from tqModelSales tm, tqModelRange ts),
+modelMix as
+(select case when a.fsort is not null then a.fsort else b.fsort end fsort,
+            a.bqMix ,b.tqMix 
+            from modelMix1 a
+     full join modelMix2 b on b.fsort=a.fsort),
+market as
+(
+select distinct g.sub_grade_id,g.sub_grade_name 
+       from dm_sub_grade_new g
+          join dm_sub_model_segment s on s.sub_grade_id=g.sub_grade_id and s.grade_category_id=1
+          join dm_sub_model d on d.sub_model_id=g.sub_model_id
+          where d.sub_model_id=$myModelId$
+),
+versionRange as
+(
+ select $priceSegmentSql$
+ 		 fsort ,
+        sum(m.bq_sales) as bqSales,
+        sum(m.tq_sales)  as tqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_grade_new g on g.sub_model_id=m.sub_model_id
+ join market k on k.sub_grade_id=g.sub_grade_id
+ where  m.ym=$ym$
+ group by $priceSegmentSql$      
+),
+versionSales as 
+(
+ select sum(m.bq_sales) as bqSales,
+        sum(m.tq_sales)  as tqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_grade_new g on g.sub_model_id=m.sub_model_id
+join market k on k.sub_grade_id=g.sub_grade_id
+ where  m.ym=$ym$
+),
+tqVersionRange as
+(
+ select $priceSegmentSql$
+ 		 fsort ,
+        sum(m.bq_sales) as tqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_grade_new g on g.sub_model_id=m.sub_model_id
+ join market k on k.sub_grade_id=g.sub_grade_id
+ where  m.ym=$lastYm$
+ group by $priceSegmentSql$      
+),
+tqVersionSales as 
+(
+ select sum(m.bq_sales) as tqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_grade_new g on g.sub_model_id=m.sub_model_id
+join market k on k.sub_grade_id=g.sub_grade_id
+ where  m.ym=$lastYm$
+),
+marketMix as
+(
+select  s.fsort,s.bqSales/m.bqSales as bqMix,
+              ts.tqSales/tm.tqSales as tqMix
+               from versionSales m 
+               left join  versionRange s on 1=1
+               left join tqVersionSales tm on 1=1
+               left join  tqVersionRange ts on ts.fsort=s.fsort
+),
+marketSales as 
+(
+select sum(m.bq_sales) as bqSales,
+        sum(m.tq_sales)  as tqSales
+         from  fdm_state_insurance m
+join dm_sub_grade_new g on g.sub_model_id=m.sub_model_id
+ join market k on k.sub_grade_id=g.sub_grade_id
+ where  m.year||lpad(m.month_id,2,0)=$ym$ 
+),
+tqMarketSales as 
+(
+select sum(m.bq_sales) as tqSales
+         from  fdm_state_insurance m
+join dm_sub_grade_new g on g.sub_model_id=m.sub_model_id
+ join market k on k.sub_grade_id=g.sub_grade_id
+ where  m.year||lpad(m.month_id,2,0)=$lastYm$ 
+),
+marketRange as 
+(
+select m.fsort,
+       m.bqMix*s.bqSales as bqSales ,
+       m.tqMix*ts.tqSales as tqSales
+ from marketMix m,marketSales s,tqMarketSales ts
+),
+modelShare as 
+(
+select mr.fsort ,dr.bqSales/mr.bqSales as bqShare,
+       tr.tqSales/mr.tqSales as tqShare
+from  marketRange mr
+left join modelRange dr on dr.fsort=mr.fsort
+left join tqModelRange tr on mr.fsort=tr.fsort
+),
+
+compModelRange as
+(
+ select $priceSegmentSql$
+ 		 fsort ,d.sub_model_id as id,
+        sum(m.bq_sales)  as bqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id in ($vsModelId$) and m.ym=$ym$
+  
+ group by d.sub_model_id ,$priceSegmentSql$ 
+),
+compModelSales as
+(
+select  sum(m.bq_sales) as bqSales,d.sub_model_id as id
+ from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id in ($vsModelId$) and m.ym=$ym$
+ group by d.sub_model_id
+ 
+),
+compTqModelRange as
+(
+ select $priceSegmentSql$
+ 		 fsort ,d.sub_model_id as id,
+        sum(m.bq_sales)  as tqSales
+  from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id in ($vsModelId$) and m.ym=$lastYm$
+ group by d.sub_model_id,$priceSegmentSql$
+),
+compTqModelSales as
+(
+select  sum(m.bq_sales) as tqSales,d.sub_model_id as id
+       
+ from fdm_version_insurance_mix_sp m
+ join dm_sub_model d on d.sub_model_id=m.sub_model_id
+ where d.sub_model_id in ($vsModelId$) and m.ym=$lastYm$
+ group by d.sub_model_id
+),
+compModelMix1 as(
+   select s.fsort, m.id as id,
+    s.bqSales / m.bqSales as bqMix
+    from compModelSales m
+    left join compModelRange s on m.id = s.id
+   ),
+compModelMix2 as 
+  ( select ts.fsort, tm.id as id,
+        ts.tqSales / tm.tqSales as tqMix  
+    from  compTqModelSales tm
+    left join compTqModelRange ts on  tm.id = ts.id
+     ),
+compModelMix as 
+  (select case when a.fsort is not null then a.fsort else b.fsort end fsort ,
+     case when a.id is not null then a.id else b.id end id, 
+     a.bqMix ,b.tqMix from compModelMix1 a 
+     full join compModelMix2 b on b.fsort=a.fsort and a.id=b.id),
+compModelShare1 as(    
+select dr.fsort,
+         dr.bqSales / mr.bqSales as bqShare,
+         dr.id
+    from marketRange mr
+    left join compModelRange dr
+      on dr.fsort = mr.fsort),
+compModelShare2 as 
+(select tr.fsort,
+         tr.tqSales / mr.tqSales as tqShare,
+         tr.id 
+    from marketRange mr
+    left join compTqModelRange tr
+      on mr.fsort = tr.fsort ),
+compModelShare3 as       
+(select case when a.fsort is not null then a.fsort else b.fsort end fsort,
+             case when a.id is not null then a.id  else b.id  end id ,
+             a.bqShare,b.tqShare
+      from compModelShare1 a
+      full join compModelShare2 b
+       on a.fsort=b.fsort and a.id=b.id),
+compModelShare as
+(select * from compModelShare3 c where c.fsort is not null),
+
+$modelDB$
+order by id ,fsort
+
+	    
+<!-- ]]> -->
+
+	</select>
+	
+	
+	
+</sqlMap>
